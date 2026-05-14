@@ -253,6 +253,16 @@ const App = {
                 fetch(`/api/lines-bilingual/${playId}/${characterId}`),
                 fetch(`/api/recordings/${playId}/${characterId}`)
             ]);
+
+            if (!linesRes.ok) {
+                container.innerHTML = `<div class="empty-state"><div class="emoji">😢</div><p>Failed to load lines (HTTP ${linesRes.status})</p></div>`;
+                return;
+            }
+            if (!bilRes.ok) {
+                container.innerHTML = `<div class="empty-state"><div class="emoji">😢</div><p>Failed to load bilingual data (HTTP ${bilRes.status})</p></div>`;
+                return;
+            }
+
             const linesData = await linesRes.json();
             const bilingualData = await bilRes.json();
             const recordings = await recsRes.json();
@@ -271,7 +281,7 @@ const App = {
                 <a class="back-link" onclick="App.navigate('/play/${playId}')">← ${playTitle}</a>
 
                 <div class="practice-header">
-                    <div class="practice-title">${char.emoji} ${char.name_en} (${char.name_zh}) - ${lang === 'en' ? 'Practice' : '练习'}</div>
+                    <div class="practice-title">${char.emoji} ${char.name_en} (${char.name_zh})</div>
                     <div class="practice-actions">
                         <a class="btn btn-primary" href="/api/lines-text/${playId}/${characterId}?mode=bilingual" download>📥 中英对照下载 / Bilingual Download</a>
                         <a class="btn btn-outline" id="downloadSingleBtn" href="/api/lines-text/${playId}/${characterId}?lang=en" download>📥 EN Only</a>
@@ -336,7 +346,8 @@ const App = {
             container.innerHTML = html;
             this.loadScores(playId, characterId);
         } catch (e) {
-            container.innerHTML = '<div class="empty-state"><div class="emoji">😢</div><p>Failed to load</p></div>';
+            console.error('Practice page error:', e);
+            container.innerHTML = `<div class="empty-state"><div class="emoji">😢</div><p>Failed to load: ${e.message || 'Unknown error'}</p><p style="font-size:0.8rem;color:var(--text-secondary)">Try refreshing the page, or click Back to return.</p></div>`;
         }
     },
 
