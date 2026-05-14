@@ -94,7 +94,8 @@ def get_character_full_lines(play, character_id, lang):
             sd = line.get(f'stage_direction_{lang}', line.get('stage_direction_en', ''))
             if sd:
                 line_data['stage_direction'] = sd
-            result.append(scene_data)
+            scene_data['lines'].append(line_data)
+        result.append(scene_data)
     return result
 
 def get_character_mylines_only(play, character_id, lang):
