@@ -142,6 +142,10 @@ def play_page(play_id):
 def practice_page(play_id, character_id):
     return render_template('practice.html', play_id=play_id, character_id=character_id)
 
+@app.route('/watch/<int:play_id>')
+def watch_page(play_id):
+    return render_template('watch.html', play_id=play_id)
+
 # ---------- API ----------
 
 @app.route('/api/plays')

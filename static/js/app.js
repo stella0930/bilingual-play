@@ -23,6 +23,9 @@ const App = {
         } else if (path.match(/^\/play\/\d+$/)) {
             const playId = parseInt(path.split('/').pop());
             this.renderPlay(app, playId);
+        } else if (path.match(/^\/watch\/\d+$/)) {
+            const playId = parseInt(path.split('/').pop());
+            this.renderWatch(app, playId);
         } else if (path.match(/^\/practice\/\d+\/.+$/)) {
             const parts = path.split('/').filter(Boolean);
             const playId = parseInt(parts[1]);
@@ -92,6 +95,9 @@ const App = {
                     <div class="play-header-emoji">${play.cover_emoji}</div>
                     <div class="play-header-title" id="playTitle">${play.title_en}</div>
                     <div class="play-header-title-zh" id="playTitleZh">${play.title_zh}</div>
+                </div>
+                <div style="text-align:center;margin-bottom:16px">
+                    <button class="btn btn-primary" onclick="App.navigate('/watch/${play.id}')" style="font-size:1.1rem;padding:12px 32px">🎬 Interactive Player / 互动播放器</button>
                 </div>
                 <div class="lang-toggle">
                     <button class="lang-btn active" id="btnEn" onclick="App.switchLang('en', ${playId})">🇬🇧 English</button>
@@ -242,6 +248,481 @@ const App = {
         } catch (e) {
             this.showToast('❌ Network error', 'error');
         }
+    },
+
+    // ========== Watch / Interactive Player Page ==========
+    async renderWatch(container, playId) {
+        container.innerHTML = '<div class="empty-state"><div class="emoji">🎬</div><p>Loading player...</p></div>';
+        try {
+            const res = await fetch(`/api/play/${playId}`);
+            const play = await res.json();
+            this.data.watch = {
+                play,
+                lang: 'en',
+                mode: 'watch',      // 'watch' or 'practice'
+                characterId: null,   // selected character for practice mode
+                currentSceneIdx: 0,
+                currentLineIdx: 0,
+                isPlaying: false,
+                isMuted: false,
+                speechUtterance: null
+            };
+
+            // Flatten all lines with scene info for easy navigation
+            this.data.watch.allLines = [];
+            play.scenes.forEach((scene, si) => {
+                scene.lines.forEach((line, li) => {
+                    this.data.watch.allLines.push({
+                        sceneIdx: si,
+                        lineIdxInScene: li,
+                        sceneId: scene.id,
+                        sceneTitleEn: scene.title_en,
+                        sceneTitleZh: scene.title_zh,
+                        sceneNumber: scene.number,
+                        characterId: line.character_id,
+                        textEn: line.text_en,
+                        textZh: line.text_zh,
+                        stageDirEn: line.stage_direction_en || '',
+                        stageDirZh: line.stage_direction_zh || '',
+                        isChorus: line.is_chorus || false
+                    });
+                });
+            });
+
+            const totalLines = this.data.watch.allLines.length;
+            const totalScenes = play.scenes.length;
+
+            let html = `
+                <a class="back-link" onclick="App.navigate('/play/${playId}')">← Back / 返回</a>
+                <div class="watch-header">
+                    <span class="watch-emoji">${play.cover_emoji}</span>
+                    <div>
+                        <div class="watch-title" id="watchTitle">${play.title_en}</div>
+                        <div class="watch-title-zh" id="watchTitleZh">${play.title_zh}</div>
+                    </div>
+                </div>
+
+                <!-- Mode Toggle -->
+                <div class="watch-mode-toggle">
+                    <button class="watch-mode-btn active" id="modeWatch" onclick="App.setWatchMode('watch')">🎬 Watch / 观看</button>
+                    <button class="watch-mode-btn" id="modePractice" onclick="App.setWatchMode('practice')">🎭 Practice / 练习</button>
+                </div>
+
+                <!-- Character selector (only in practice mode) -->
+                <div class="watch-char-select hidden" id="watchCharSelect">
+                    <label>Choose your role / 选择你的角色：</label>
+                    <select id="watchCharDropdown" onchange="App.selectWatchChar(this.value)">
+                        <option value="">-- Select --</option>
+                        ${play.characters.map(c => `<option value="${c.id}">${c.emoji} ${c.name_en} (${c.name_zh})</option>`).join('')}
+                    </select>
+                </div>
+
+                <!-- Language Toggle -->
+                <div class="lang-toggle" style="margin-bottom:16px">
+                    <button class="lang-btn active" id="wBtnEn" onclick="App.switchWatchLang('en')">🇬🇧 English</button>
+                    <button class="lang-btn" id="wBtnZh" onclick="App.switchWatchLang('zh')">🇨🇳 中文</button>
+                    <button class="lang-btn" id="wBtnBi" onclick="App.switchWatchLang('bilingual')">🌐 Bilingual / 对照</button>
+                </div>
+
+                <!-- Current Line Display (big centered) -->
+                <div class="watch-stage" id="watchStage">
+                    <div class="watch-scene-label" id="watchSceneLabel">Opening / 开场</div>
+                    <div class="watch-line-card" id="watchLineCard">
+                        <div class="watch-char-avatar" id="watchCharAvatar">📖</div>
+                        <div class="watch-char-name" id="watchCharName">Narrator</div>
+                        <div class="watch-line-text" id="watchLineText">Click ▶ to start! / 点击 ▶ 开始！</div>
+                        <div class="watch-line-text-alt hidden" id="watchLineTextAlt"></div>
+                        <div class="watch-stage-dir hidden" id="watchStageDir"></div>
+                        <div class="watch-prompt hidden" id="watchPrompt">🎤 Your turn! Read this line! / 轮到你了！朗读这句！</div>
+                    </div>
+                </div>
+
+                <!-- Player Controls -->
+                <div class="watch-controls">
+                    <button class="watch-ctrl-btn" onclick="App.watchPrev()" title="Previous / 上一句">⏮</button>
+                    <button class="watch-ctrl-btn watch-play-btn" id="watchPlayBtn" onclick="App.watchTogglePlay()" title="Play / 播放">▶</button>
+                    <button class="watch-ctrl-btn" onclick="App.watchNext()" title="Next / 下一句">⏭</button>
+                    <button class="watch-ctrl-btn" id="watchMuteBtn" onclick="App.watchToggleMute()" title="Mute / 静音">🔊</button>
+                    <button class="watch-ctrl-btn hidden" id="watchMicBtn" onclick="App.watchPracticeLine()" title="Practice this line / 跟读这句">🎤</button>
+                </div>
+
+                <!-- Progress -->
+                <div class="watch-progress">
+                    <div class="watch-progress-bar" id="watchProgressBar">
+                        <div class="watch-progress-fill" id="watchProgressFill" style="width:0%"></div>
+                    </div>
+                    <div class="watch-progress-text" id="watchProgressText">0 / ${totalLines}</div>
+                </div>
+
+                <!-- Score result for practice mode -->
+                <div class="watch-score-result hidden" id="watchScoreResult"></div>
+
+                <!-- Script Navigator -->
+                <div class="watch-script-nav" id="watchScriptNav">
+                    ${this.renderWatchScriptNav(play)}
+                </div>
+            `;
+
+            container.innerHTML = html;
+        } catch (e) {
+            console.error('Watch page error:', e);
+            container.innerHTML = `<div class="empty-state"><div class="emoji">😢</div><p>Failed to load: ${e.message}</p></div>`;
+        }
+    },
+
+    renderWatchScriptNav(play) {
+        const w = this.data.watch;
+        const lang = w.lang;
+        let html = '';
+        let globalIdx = 0;
+        for (const scene of play.scenes) {
+            const title = lang === 'zh' ? scene.title_zh : (lang === 'bilingual' ? `${scene.title_en} / ${scene.title_zh}` : scene.title_en);
+            html += `<div class="watch-nav-scene" data-scene-idx="${play.scenes.indexOf(scene)}">
+                <div class="watch-nav-scene-title" onclick="App.watchJumpScene(${play.scenes.indexOf(scene)})">${scene.number > 0 ? `Scene ${scene.number}: ` : ''}${title}</div>`;
+            for (const line of scene.lines) {
+                const char = play.characters.find(c => c.id === line.character_id);
+                const charName = char ? (lang === 'zh' ? char.name_zh : char.name_en) : '';
+                const charEmoji = char ? char.emoji : '';
+                const text = lang === 'zh' ? line.text_zh : (lang === 'bilingual' ? `${line.text_en}<br><span style="color:var(--text-secondary);font-size:0.85rem">${line.text_zh}</span>` : line.text_en);
+                html += `<div class="watch-nav-line" id="watchNavLine_${globalIdx}" data-line-idx="${globalIdx}" onclick="App.watchJumpLine(${globalIdx})">
+                    <span class="watch-nav-char" style="color:${char ? char.color : 'inherit'}">${charEmoji} ${charName}</span>
+                    <span class="watch-nav-text">${text}</span>
+                </div>`;
+                globalIdx++;
+            }
+            html += '</div>';
+        }
+        return html;
+    },
+
+    setWatchMode(mode) {
+        const w = this.data.watch;
+        w.mode = mode;
+        w.isPlaying = false;
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+
+        document.getElementById('modeWatch').classList.toggle('active', mode === 'watch');
+        document.getElementById('modePractice').classList.toggle('active', mode === 'practice');
+        document.getElementById('watchCharSelect').classList.toggle('hidden', mode === 'watch');
+        document.getElementById('watchMicBtn').classList.toggle('hidden', mode !== 'practice');
+        document.getElementById('watchPlayBtn').textContent = '▶';
+    },
+
+    selectWatchChar(charId) {
+        this.data.watch.characterId = charId || null;
+        this.highlightWatchCurrentLine();
+    },
+
+    switchWatchLang(lang) {
+        const w = this.data.watch;
+        w.lang = lang;
+        document.getElementById('wBtnEn').classList.toggle('active', lang === 'en');
+        document.getElementById('wBtnZh').classList.toggle('active', lang === 'zh');
+        document.getElementById('wBtnBi').classList.toggle('active', lang === 'bilingual');
+
+        // Re-render script nav
+        document.getElementById('watchScriptNav').innerHTML = this.renderWatchScriptNav(w.play);
+        // Update current line display
+        this.showWatchCurrentLine();
+    },
+
+    watchTogglePlay() {
+        const w = this.data.watch;
+        if (w.isPlaying) {
+            w.isPlaying = false;
+            if (window.speechSynthesis) window.speechSynthesis.cancel();
+            document.getElementById('watchPlayBtn').textContent = '▶';
+        } else {
+            w.isPlaying = true;
+            document.getElementById('watchPlayBtn').textContent = '⏸';
+            this.watchPlayCurrentLine();
+        }
+    },
+
+    watchPlayCurrentLine() {
+        const w = this.data.watch;
+        if (!w.isPlaying) return;
+
+        const lineData = w.allLines[w.currentLineIdx];
+        if (!lineData) {
+            w.isPlaying = false;
+            document.getElementById('watchPlayBtn').textContent = '▶';
+            return;
+        }
+
+        // In practice mode, skip lines that belong to the selected character
+        if (w.mode === 'practice' && w.characterId && lineData.characterId === w.characterId) {
+            // This is the user's line — stop and prompt them
+            this.showWatchCurrentLine();
+            document.getElementById('watchPrompt').classList.remove('hidden');
+            document.getElementById('watchMicBtn').classList.remove('hidden');
+            w.isPlaying = false;
+            document.getElementById('watchPlayBtn').textContent = '▶';
+            return;
+        }
+
+        this.showWatchCurrentLine();
+        document.getElementById('watchPrompt').classList.add('hidden');
+
+        if (w.isMuted || !window.speechSynthesis) {
+            // Muted mode: just wait then go next
+            const textLen = (w.lang === 'zh' ? lineData.textZh : lineData.textEn).length;
+            const delay = Math.max(1500, textLen * 120);
+            setTimeout(() => {
+                if (w.isPlaying) this.watchAdvance();
+            }, delay);
+        } else {
+            // Use SpeechSynthesis to read the line
+            const text = w.lang === 'zh' ? lineData.textZh : (w.lang === 'bilingual' ? `${lineData.textEn}. ${lineData.textZh}` : lineData.textEn);
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = w.lang === 'zh' ? 'zh-CN' : 'en-US';
+            utterance.rate = 0.85;
+            utterance.onend = () => {
+                if (w.isPlaying) this.watchAdvance();
+            };
+            utterance.onerror = () => {
+                if (w.isPlaying) this.watchAdvance();
+            };
+            window.speechSynthesis.speak(utterance);
+        }
+    },
+
+    watchAdvance() {
+        const w = this.data.watch;
+        if (w.currentLineIdx < w.allLines.length - 1) {
+            w.currentLineIdx++;
+            this.watchPlayCurrentLine();
+        } else {
+            // End of play
+            w.isPlaying = false;
+            document.getElementById('watchPlayBtn').textContent = '▶';
+            this.showToast('🎬 The End! / 剧终！', 'success');
+        }
+    },
+
+    watchPrev() {
+        const w = this.data.watch;
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+        w.isPlaying = false;
+        document.getElementById('watchPlayBtn').textContent = '▶';
+        if (w.currentLineIdx > 0) {
+            w.currentLineIdx--;
+            this.showWatchCurrentLine();
+        }
+    },
+
+    watchNext() {
+        const w = this.data.watch;
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+        w.isPlaying = false;
+        document.getElementById('watchPlayBtn').textContent = '▶';
+        if (w.currentLineIdx < w.allLines.length - 1) {
+            w.currentLineIdx++;
+            this.showWatchCurrentLine();
+        }
+    },
+
+    watchJumpLine(idx) {
+        const w = this.data.watch;
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+        w.isPlaying = false;
+        document.getElementById('watchPlayBtn').textContent = '▶';
+        w.currentLineIdx = idx;
+        this.showWatchCurrentLine();
+    },
+
+    watchJumpScene(sceneIdx) {
+        const w = this.data.watch;
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+        w.isPlaying = false;
+        document.getElementById('watchPlayBtn').textContent = '▶';
+        // Find first line of this scene
+        const firstLine = w.allLines.find(l => l.sceneIdx === sceneIdx);
+        if (firstLine) {
+            w.currentLineIdx = w.allLines.indexOf(firstLine);
+            this.showWatchCurrentLine();
+        }
+    },
+
+    watchToggleMute() {
+        const w = this.data.watch;
+        w.isMuted = !w.isMuted;
+        document.getElementById('watchMuteBtn').textContent = w.isMuted ? '🔇' : '🔊';
+        if (w.isMuted && window.speechSynthesis) window.speechSynthesis.cancel();
+    },
+
+    showWatchCurrentLine() {
+        const w = this.data.watch;
+        const lineData = w.allLines[w.currentLineIdx];
+        if (!lineData) return;
+
+        const char = w.play.characters.find(c => c.id === lineData.characterId);
+        const lang = w.lang;
+
+        // Scene label
+        const sceneLabel = lang === 'zh' ? lineData.sceneTitleZh : (lang === 'bilingual' ? `${lineData.sceneTitleEn} / ${lineData.sceneTitleZh}` : lineData.sceneTitleEn);
+        document.getElementById('watchSceneLabel').textContent = lineData.sceneNumber > 0 ? `Scene ${lineData.sceneNumber}: ${sceneLabel}` : sceneLabel;
+
+        // Character
+        document.getElementById('watchCharAvatar').textContent = char ? char.emoji : '🎭';
+        document.getElementById('watchCharName').textContent = char ? (lang === 'zh' ? char.name_zh : `${char.name_en} (${char.name_zh})`) : '';
+        document.getElementById('watchCharName').style.color = char ? char.color : 'inherit';
+
+        // Line text
+        const mainText = lang === 'zh' ? lineData.textZh : lineData.textEn;
+        document.getElementById('watchLineText').textContent = mainText;
+
+        // Alt text (bilingual mode)
+        const altEl = document.getElementById('watchLineTextAlt');
+        if (lang === 'bilingual') {
+            altEl.textContent = lang === 'zh' ? lineData.textEn : lineData.textZh;
+            altEl.classList.remove('hidden');
+        } else {
+            altEl.classList.add('hidden');
+        }
+
+        // Stage direction
+        const sdEl = document.getElementById('watchStageDir');
+        const sd = lang === 'zh' ? lineData.stageDirZh : (lang === 'bilingual' ? `${lineData.stageDirEn} / ${lineData.stageDirZh}` : lineData.stageDirEn);
+        if (sd) {
+            sdEl.textContent = `(${sd})`;
+            sdEl.classList.remove('hidden');
+        } else {
+            sdEl.classList.add('hidden');
+        }
+
+        // Practice mode prompt
+        const promptEl = document.getElementById('watchPrompt');
+        if (w.mode === 'practice' && w.characterId && lineData.characterId === w.characterId) {
+            promptEl.classList.remove('hidden');
+        } else {
+            promptEl.classList.add('hidden');
+        }
+
+        // Highlight card border for current character's line in practice mode
+        const card = document.getElementById('watchLineCard');
+        if (w.mode === 'practice' && w.characterId && lineData.characterId === w.characterId) {
+            card.classList.add('watch-line-mine');
+        } else {
+            card.classList.remove('watch-line-mine');
+        }
+
+        // Update progress
+        const total = w.allLines.length;
+        const pct = Math.round(((w.currentLineIdx + 1) / total) * 100);
+        document.getElementById('watchProgressFill').style.width = pct + '%';
+        document.getElementById('watchProgressText').textContent = `${w.currentLineIdx + 1} / ${total}`;
+
+        // Highlight in script nav
+        this.highlightWatchCurrentLine();
+    },
+
+    highlightWatchCurrentLine() {
+        const w = this.data.watch;
+        // Remove all highlights
+        document.querySelectorAll('.watch-nav-line.active').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.watch-nav-line.is-my-line').forEach(el => el.classList.remove('is-my-line'));
+
+        // Add highlight to current line
+        const navLine = document.getElementById(`watchNavLine_${w.currentLineIdx}`);
+        if (navLine) {
+            navLine.classList.add('active');
+            navLine.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        // In practice mode, mark the user's lines
+        if (w.mode === 'practice' && w.characterId) {
+            w.allLines.forEach((line, idx) => {
+                if (line.characterId === w.characterId) {
+                    const el = document.getElementById(`watchNavLine_${idx}`);
+                    if (el) el.classList.add('is-my-line');
+                }
+            });
+        }
+    },
+
+    async watchPracticeLine() {
+        const w = this.data.watch;
+        const lineData = w.allLines[w.currentLineIdx];
+        if (!lineData) return;
+
+        const lang = w.lang === 'bilingual' ? 'en' : w.lang;
+        const expectedText = lang === 'en' ? lineData.textEn : lineData.textZh;
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const scoreEl = document.getElementById('watchScoreResult');
+
+        if (!SpeechRecognition) {
+            // Fallback
+            const userInput = prompt(
+                lang === 'en'
+                    ? `Read this line and type what you said:\n"${expectedText}"`
+                    : `朗读这句话，然后输入你说的内容：\n"${expectedText}"`
+            );
+            if (userInput && userInput.trim()) {
+                const res = await fetch('/api/score', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        play_id: w.play.id,
+                        character_id: w.characterId || lineData.characterId,
+                        lang: lang,
+                        scene_id: lineData.sceneId,
+                        recognized_text: userInput.trim(),
+                        expected_text: expectedText
+                    })
+                });
+                const data = await res.json();
+                this.showWatchScore(data);
+            }
+            return;
+        }
+
+        // Use Web Speech API
+        const recognition = new SpeechRecognition();
+        recognition.lang = lang === 'en' ? 'en-US' : 'zh-CN';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        scoreEl.classList.remove('hidden');
+        scoreEl.innerHTML = '🔴 <span style="color:var(--danger)">' + (lang === 'en' ? 'Listening...' : '正在听...') + '</span>';
+
+        recognition.onresult = async (event) => {
+            const recognized = event.results[0][0].transcript;
+            const res = await fetch('/api/score', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    play_id: w.play.id,
+                    character_id: w.characterId || lineData.characterId,
+                    lang: lang,
+                    scene_id: lineData.sceneId,
+                    recognized_text: recognized,
+                    expected_text: expectedText
+                })
+            });
+            const data = await res.json();
+            this.showWatchScore(data);
+        };
+
+        recognition.onerror = () => {
+            scoreEl.innerHTML = '❌ Speech recognition error / 语音识别出错';
+        };
+
+        recognition.start();
+    },
+
+    showWatchScore(data) {
+        const scoreEl = document.getElementById('watchScoreResult');
+        scoreEl.classList.remove('hidden');
+        const icon = data.passed ? '✅' : '❌';
+        const color = data.passed ? 'var(--success)' : 'var(--danger)';
+        scoreEl.innerHTML = `${icon} <span style="color:${color};font-weight:700;font-size:1.2rem">${data.score}分</span> ${data.passed ? '/ Pass! ✨' : '(需80分以上)'}`;
+
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            scoreEl.classList.add('hidden');
+        }, 5000);
     },
 
     // ========== Practice Page ==========
