@@ -2,16 +2,219 @@
 
 const App = {
     currentRoute: '',
-    data: {},
+    data: { user: null },
     mediaRecorder: null,
     audioChunks: [],
     isRecording: false,
     currentRecordingLang: 'en', // track which language we're recording for
     speechSupported: !!(window.SpeechRecognition || window.webkitSpeechRecognition),
 
-    init() {
+    async init() {
+        await this.checkAuth();
         this.route();
         window.addEventListener('popstate', () => this.route());
+    },
+
+    // ========== Auth ==========
+
+    async checkAuth() {
+        try {
+            const res = await fetch('/api/me');
+            const data = await res.json();
+            if (data.logged_in) {
+                this.data.user = data.user;
+            } else {
+                this.data.user = null;
+            }
+        } catch(e) {
+            this.data.user = null;
+        }
+        this.renderNavbarAuth();
+    },
+
+    renderNavbarAuth() {
+        const navAuth = document.getElementById('navAuth');
+        if (!navAuth) return;
+
+        if (this.data.user) {
+            const u = this.data.user;
+            let html = `<span class="nav-user-greeting">Hi, ${u.nickname}!</span>`;
+            if (u.is_admin) {
+                html += `<a class="nav-admin-link" onclick="App.navigate('/admin')">👑 Admin</a>`;
+            }
+            html += `<button class="btn-auth btn-logout" onclick="App.logout()">Logout / 登出</button>`;
+            navAuth.innerHTML = html;
+        } else {
+            navAuth.innerHTML = `
+                <button class="btn-auth btn-login" onclick="App.showLoginModal()">Login / 登录</button>
+                <button class="btn-auth btn-register" onclick="App.showRegisterModal()">Register / 注册</button>
+            `;
+        }
+    },
+
+    showLoginModal() {
+        // Remove existing modal
+        this.closeModal();
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        overlay.id = 'authModal';
+        overlay.innerHTML = `
+            <div class="modal">
+                <h3>🔑 Login / 登录</h3>
+                <div id="authModalError" class="modal-error" style="display:none"></div>
+                <div class="form-group">
+                    <label>Nickname / 昵称</label>
+                    <input type="text" id="loginNickname" placeholder="Your nickname" autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label>Password / 密码</label>
+                    <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password">
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-outline" onclick="App.closeModal()">Cancel / 取消</button>
+                    <button class="btn btn-primary" onclick="App.doLogin()">Login / 登录</button>
+                </div>
+                <div class="modal-switch">
+                    No account? / 没有账号？<a onclick="App.showRegisterModal()">Register / 注册</a>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        // Enter key to submit
+        document.getElementById('loginPassword').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') App.doLogin();
+        });
+    },
+
+    showRegisterModal() {
+        this.closeModal();
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        overlay.id = 'authModal';
+        overlay.innerHTML = `
+            <div class="modal">
+                <h3>📝 Register / 注册</h3>
+                <div id="authModalError" class="modal-error" style="display:none"></div>
+                <div class="form-group">
+                    <label>Nickname / 昵称</label>
+                    <input type="text" id="regNickname" placeholder="Your nickname" autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label>Password / 密码 (4+ chars)</label>
+                    <input type="password" id="regPassword" placeholder="Password (at least 4 characters)" autocomplete="new-password">
+                </div>
+                <div class="form-group">
+                    <label>Age / 年龄</label>
+                    <input type="number" id="regAge" placeholder="e.g. 8" min="3" max="99">
+                </div>
+                <div class="form-group">
+                    <label>Room / 房间号</label>
+                    <input type="text" id="regRoom" placeholder="e.g. 3-502">
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-outline" onclick="App.closeModal()">Cancel / 取消</button>
+                    <button class="btn btn-primary" onclick="App.doRegister()">Register / 注册</button>
+                </div>
+                <div class="modal-switch">
+                    Already have account? / 已有账号？<a onclick="App.showLoginModal()">Login / 登录</a>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        document.getElementById('regRoom').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') App.doRegister();
+        });
+    },
+
+    closeModal() {
+        const modal = document.getElementById('authModal');
+        if (modal) modal.remove();
+    },
+
+    async doLogin() {
+        const nickname = document.getElementById('loginNickname').value.trim();
+        const password = document.getElementById('loginPassword').value;
+        const errorEl = document.getElementById('authModalError');
+
+        if (!nickname || !password) {
+            errorEl.textContent = 'Please enter nickname and password / 请输入昵称和密码';
+            errorEl.style.display = 'block';
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nickname, password })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                this.data.user = data.user;
+                this.renderNavbarAuth();
+                this.closeModal();
+                this.showToast(`✅ Welcome back, ${data.user.nickname}! / 欢迎回来！`, 'success');
+            } else {
+                errorEl.textContent = data.error || 'Login failed';
+                errorEl.style.display = 'block';
+            }
+        } catch(e) {
+            errorEl.textContent = 'Network error / 网络错误';
+            errorEl.style.display = 'block';
+        }
+    },
+
+    async doRegister() {
+        const nickname = document.getElementById('regNickname').value.trim();
+        const password = document.getElementById('regPassword').value;
+        const age = document.getElementById('regAge').value;
+        const room = document.getElementById('regRoom').value.trim();
+        const errorEl = document.getElementById('authModalError');
+
+        if (!nickname) {
+            errorEl.textContent = 'Please enter a nickname / 请输入昵称';
+            errorEl.style.display = 'block';
+            return;
+        }
+        if (password.length < 4) {
+            errorEl.textContent = 'Password must be at least 4 chars / 密码至少4位';
+            errorEl.style.display = 'block';
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nickname, password, age: age || null, room })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                this.data.user = data.user;
+                this.renderNavbarAuth();
+                this.closeModal();
+                this.showToast(`✅ Welcome, ${data.user.nickname}! / 注册成功！`, 'success');
+            } else {
+                errorEl.textContent = data.error || 'Registration failed';
+                errorEl.style.display = 'block';
+            }
+        } catch(e) {
+            errorEl.textContent = 'Network error / 网络错误';
+            errorEl.style.display = 'block';
+        }
+    },
+
+    async logout() {
+        try {
+            await fetch('/api/logout', { method: 'POST' });
+        } catch(e) {}
+        this.data.user = null;
+        this.renderNavbarAuth();
+        this.showToast('👋 Logged out / 已登出', 'success');
+        // If on admin page, redirect to home
+        if (window.location.pathname === '/admin') {
+            this.navigate('/');
+        }
     },
 
     route() {
@@ -31,6 +234,8 @@ const App = {
             const playId = parseInt(parts[1]);
             const characterId = parts[2];
             this.renderPractice(app, playId, characterId);
+        } else if (path === '/admin') {
+            this.renderAdmin(app);
         } else {
             app.innerHTML = '<div class="empty-state"><div class="emoji">🤷</div><p>Page not found</p></div>';
         }
@@ -140,10 +345,15 @@ const App = {
                          <button class="unclaim-btn" onclick="App.unclaim('${char.claim_id}', ${play.id})">${lang === 'en' ? 'Release' : '释放角色'}</button>
                          <a class="btn btn-outline btn-sm" style="margin-top:8px" onclick="App.navigate('/practice/${play.id}/${char.id}')">${lang === 'en' ? '📖 Practice' : '📖 练习'}</a>`;
             } else {
-                html += `<div class="claim-form">
-                    <input class="claim-input" id="claim-${char.id}" placeholder="${lang === 'en' ? 'Your name' : '你的名字'}" onkeydown="if(event.key==='Enter')App.claim(${play.id},'${char.id}')">
-                    <button class="claim-btn" onclick="App.claim(${play.id},'${char.id}')">${lang === 'en' ? 'Claim' : '认领'}</button>
-                </div>`;
+                if (this.data.user) {
+                    // Logged in: auto-claim with nickname, no input needed
+                    html += `<button class="claim-btn" onclick="App.claim(${play.id},'${char.id}')">${lang === 'en' ? 'Claim as' : '认领为'} ${this.data.user.nickname}</button>`;
+                } else {
+                    html += `<div class="claim-form">
+                        <input class="claim-input" id="claim-${char.id}" placeholder="${lang === 'en' ? 'Your name' : '你的名字'}" onkeydown="if(event.key==='Enter')App.claim(${play.id},'${char.id}')">
+                        <button class="claim-btn" onclick="App.claim(${play.id},'${char.id}')">${lang === 'en' ? 'Claim' : '认领'}</button>
+                    </div>`;
+                }
             }
             html += '</div>';
         }
@@ -210,8 +420,12 @@ const App = {
 
     async claim(playId, characterId) {
         const input = document.getElementById(`claim-${characterId}`);
-        const name = input.value.trim();
-        if (!name) { input.focus(); return; }
+        let name = input ? input.value.trim() : '';
+        // If logged in, use nickname
+        if (this.data.user && !name) {
+            name = this.data.user.nickname;
+        }
+        if (!name) { if (input) input.focus(); return; }
         try {
             const res = await fetch('/api/claim', {
                 method: 'POST',
@@ -441,6 +655,13 @@ const App = {
 
     setWatchMode(mode) {
         const w = this.data.watch;
+        // Practice mode requires login
+        if (mode === 'practice' && !this.data.user) {
+            this.showToast('🔒 Please login to practice / 请登录后练习', 'error');
+            this.showLoginModal();
+            return;
+        }
+
         w.mode = mode;
         w.isPlaying = false;
         w.practiceStep = 'idle';
@@ -1071,6 +1292,20 @@ const App = {
 
     // ========== Practice Page ==========
     async renderPractice(container, playId, characterId) {
+        // Check login first
+        if (!this.data.user) {
+            container.innerHTML = `
+                <div class="practice-lock">
+                    <div class="emoji">🔒</div>
+                    <h2>Please Login to Practice / 请登录后练习</h2>
+                    <p>You need to register and login to use the practice feature.</p>
+                    <p>你需要注册并登录才能使用练习功能。</p>
+                    <button class="btn btn-primary btn-lg" onclick="App.showLoginModal()">🔑 Login / 登录</button>
+                    <button class="btn btn-register btn-lg" style="margin-left:8px" onclick="App.showRegisterModal()">📝 Register / 注册</button>
+                </div>
+            `;
+            return;
+        }
         container.innerHTML = '<div class="empty-state"><div class="emoji">📖</div><p>Loading...</p></div>';
         try {
             const [linesRes, bilRes, recsRes] = await Promise.all([
@@ -1524,6 +1759,116 @@ const App = {
             }
         } catch (e) {
             this.showToast('❌ Upload error / 上传出错', 'error');
+        }
+    },
+
+    // ========== Admin Dashboard ==========
+    async renderAdmin(container) {
+        // Check admin access
+        if (!this.data.user || !this.data.user.is_admin) {
+            container.innerHTML = `
+                <div class="practice-lock">
+                    <div class="emoji">🚫</div>
+                    <h2>Access Denied / 无权访问</h2>
+                    <p>Only administrators can view this page. / 只有管理员才能查看此页面。</p>
+                    <button class="btn btn-primary" onclick="App.navigate('/')">← Home / 返回首页</button>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = '<div class="empty-state"><div class="emoji">👑</div><p>Loading admin data...</p></div>';
+
+        try {
+            const res = await fetch('/api/admin/stats');
+            if (!res.ok) {
+                container.innerHTML = `<div class="empty-state"><div class="emoji">😢</div><p>Failed to load admin data</p></div>`;
+                return;
+            }
+            const data = await res.json();
+
+            let html = `
+                <a class="back-link" onclick="App.navigate('/')">← Home / 返回首页</a>
+                <h1 class="page-title">👑 Admin Dashboard / 管理后台</h1>
+                <p class="page-subtitle">Character assignment & user statistics / 角色分配与用户统计</p>
+
+                <!-- Summary Cards -->
+                <div class="admin-summary">
+                    <div class="admin-summary-card">
+                        <div class="num">${data.total_users}</div>
+                        <div class="label">Users / 用户</div>
+                    </div>
+                    <div class="admin-summary-card">
+                        <div class="num">${data.total_claims}</div>
+                        <div class="label">Claims / 认领</div>
+                    </div>
+                </div>
+
+                <!-- Per-Play Stats -->
+            `;
+
+            for (const play of data.plays) {
+                html += `
+                    <div class="admin-stats">
+                        <h3>${play.title_en} / ${play.title_zh}</h3>
+                `;
+                for (const char of play.characters) {
+                    html += `<div style="margin-bottom:12px">
+                        <div style="font-weight:700;margin-bottom:4px">${char.emoji} ${char.character_name_en} (${char.character_name_zh})</div>`;
+                    if (char.claimed_by && char.claimed_by.length > 0) {
+                        for (const claim of char.claimed_by) {
+                            html += `<div class="char-claim-card">
+                                <div class="claim-info">
+                                    <div class="claim-name">${claim.user_nickname || claim.player_name}</div>
+                                    <div class="claim-detail">
+                                        ${claim.user_age ? `Age: ${claim.user_age} / 年龄: ${claim.user_age}` : ''}
+                                        ${claim.user_room ? ` | Room: ${claim.user_room} / 房间: ${claim.user_room}` : ''}
+                                    </div>
+                                </div>
+                            </div>`;
+                        }
+                    } else {
+                        html += `<div class="char-claim-unclaimed">No one yet / 还没有人选</div>`;
+                    }
+                    html += `</div>`;
+                }
+                html += `</div>`;
+            }
+
+            // User list
+            if (data.users.length > 0) {
+                html += `
+                    <div class="admin-stats">
+                        <h3>👥 All Users / 所有用户</h3>
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Nickname / 昵称</th>
+                                    <th>Age / 年龄</th>
+                                    <th>Room / 房间</th>
+                                    <th>Admin</th>
+                                    <th>Registered / 注册时间</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                for (const u of data.users) {
+                    const date = new Date(u.created_at).toLocaleDateString();
+                    html += `<tr>
+                        <td><strong>${u.nickname}</strong></td>
+                        <td>${u.age || '-'}</td>
+                        <td>${u.room || '-'}</td>
+                        <td>${u.is_admin ? '👑' : ''}</td>
+                        <td>${date}</td>
+                    </tr>`;
+                }
+                html += `</tbody></table></div>`;
+            }
+
+            container.innerHTML = html;
+        } catch(e) {
+            console.error('Admin page error:', e);
+            container.innerHTML = `<div class="empty-state"><div class="emoji">😢</div><p>Failed to load: ${e.message}</p></div>`;
         }
     },
 

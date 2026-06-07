@@ -1,8 +1,11 @@
-from flask import Flask, render_template, request, jsonify, send_from_directory, send_file, Response
+from flask import Flask, render_template, request, jsonify, send_from_directory, send_file, Response, session
 import json, os, sqlite3, uuid, difflib
 from datetime import datetime
+from functools import wraps
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY', 'bilingual-playhouse-dev-key-2024')
 app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(__file__), 'static', 'uploads')
 app.config['DATABASE'] = os.path.join(os.path.dirname(__file__), 'data', 'bilingual.db')
 app.config['PLAYS_FILE'] = os.path.join(os.path.dirname(__file__), 'data', 'plays.json')
@@ -19,6 +22,15 @@ def get_db():
 def init_db():
     db = get_db()
     db.executescript('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nickname TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            age INTEGER,
+            room TEXT,
+            is_admin INTEGER DEFAULT 0,
+            created_at TEXT NOT NULL
+        );
         CREATE TABLE IF NOT EXISTS role_claims (
             id TEXT PRIMARY KEY,
             play_id INTEGER,
@@ -49,13 +61,52 @@ def init_db():
             created_at TEXT
         );
     ''')
-    # Migrate: add line_index column if not exists
-    try:
-        db.execute('ALTER TABLE recordings ADD COLUMN line_index INTEGER DEFAULT -1')
-    except:
-        pass  # Column already exists
+    # Migrations
+    for stmt in [
+        'ALTER TABLE recordings ADD COLUMN line_index INTEGER DEFAULT -1',
+        'ALTER TABLE role_claims ADD COLUMN user_id INTEGER REFERENCES users(id)',
+        'ALTER TABLE recordings ADD COLUMN user_id INTEGER REFERENCES users(id)',
+        'ALTER TABLE scores ADD COLUMN user_id INTEGER REFERENCES users(id)',
+    ]:
+        try:
+            db.execute(stmt)
+        except:
+            pass
     db.commit()
     db.close()
+
+# ---------- Auth Helpers ----------
+
+def current_user():
+    """Return the logged-in user dict or None."""
+    user_id = session.get('user_id')
+    if not user_id:
+        return None
+    db = get_db()
+    user = db.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
+    db.close()
+    return dict(user) if user else None
+
+def login_required(f):
+    """Decorator: return 401 if not logged in."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get('user_id'):
+            return jsonify({'error': 'Login required / 请先登录'}), 401
+        return f(*args, **kwargs)
+    return decorated
+
+def admin_required(f):
+    """Decorator: return 403 if not admin."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        user = current_user()
+        if not user:
+            return jsonify({'error': 'Login required / 请先登录'}), 401
+        if not user['is_admin']:
+            return jsonify({'error': 'Admin access only / 仅管理员可访问'}), 403
+        return f(*args, **kwargs)
+    return decorated
 
 # ---------- Helpers ----------
 
@@ -152,7 +203,144 @@ def practice_page(play_id, character_id):
 def watch_page(play_id):
     return render_template('watch.html', play_id=play_id)
 
+@app.route('/admin')
+def admin_page():
+    return render_template('admin.html')
+
 # ---------- API ----------
+
+# ---- Auth APIs ----
+
+@app.route('/api/register', methods=['POST'])
+def api_register():
+    data = request.json
+    nickname = data.get('nickname', '').strip()
+    password = data.get('password', '')
+    age = data.get('age')
+    room = data.get('room', '').strip()
+
+    if not nickname or len(nickname) > 20:
+        return jsonify({'error': 'Nickname is required (max 20 chars) / 昵称必填（最多20字）'}), 400
+    if len(password) < 4:
+        return jsonify({'error': 'Password must be at least 4 chars / 密码至少4位'}), 400
+    if age is not None:
+        try:
+            age = int(age)
+        except:
+            age = None
+
+    db = get_db()
+    existing = db.execute('SELECT id FROM users WHERE nickname = ?', (nickname,)).fetchone()
+    if existing:
+        db.close()
+        return jsonify({'error': 'Nickname already taken / 昵称已被使用'}), 409
+
+    pw_hash = generate_password_hash(password)
+    db.execute('INSERT INTO users (nickname, password_hash, age, room, created_at) VALUES (?, ?, ?, ?, ?)',
+               (nickname, pw_hash, age, room, datetime.now().isoformat()))
+    user = db.execute('SELECT * FROM users WHERE nickname = ?', (nickname,)).fetchone()
+    db.commit()
+    db.close()
+
+    # Auto-login
+    session['user_id'] = user['id']
+    return jsonify({'success': True, 'user': {'id': user['id'], 'nickname': user['nickname'], 'age': user['age'], 'room': user['room'], 'is_admin': user['is_admin']}})
+
+@app.route('/api/login', methods=['POST'])
+def api_login():
+    data = request.json
+    nickname = data.get('nickname', '').strip()
+    password = data.get('password', '')
+
+    if not nickname or not password:
+        return jsonify({'error': 'Nickname and password required / 请输入昵称和密码'}), 400
+
+    db = get_db()
+    user = db.execute('SELECT * FROM users WHERE nickname = ?', (nickname,)).fetchone()
+    db.close()
+
+    if not user or not check_password_hash(user['password_hash'], password):
+        return jsonify({'error': 'Invalid nickname or password / 昵称或密码错误'}), 401
+
+    session['user_id'] = user['id']
+    return jsonify({'success': True, 'user': {'id': user['id'], 'nickname': user['nickname'], 'age': user['age'], 'room': user['room'], 'is_admin': user['is_admin']}})
+
+@app.route('/api/logout', methods=['POST'])
+def api_logout():
+    session.clear()
+    return jsonify({'success': True})
+
+@app.route('/api/me')
+def api_me():
+    user = current_user()
+    if user:
+        return jsonify({'logged_in': True, 'user': {'id': user['id'], 'nickname': user['nickname'], 'age': user['age'], 'room': user['room'], 'is_admin': user['is_admin']}})
+    return jsonify({'logged_in': False})
+
+@app.route('/api/admin-promote', methods=['POST'])
+def api_admin_promote():
+    """One-time setup: promote a user to admin using a setup key."""
+    data = request.json
+    nickname = data.get('nickname', '').strip()
+    setup_key = data.get('setup_key', '')
+
+    expected_key = os.environ.get('ADMIN_SETUP_KEY', 'playhouse2024')
+    if setup_key != expected_key:
+        return jsonify({'error': 'Invalid setup key / 设置密钥错误'}), 403
+
+    db = get_db()
+    user = db.execute('SELECT * FROM users WHERE nickname = ?', (nickname,)).fetchone()
+    if not user:
+        db.close()
+        return jsonify({'error': 'User not found / 用户不存在'}), 404
+
+    db.execute('UPDATE users SET is_admin = 1 WHERE id = ?', (user['id'],))
+    db.commit()
+    db.close()
+    return jsonify({'success': True, 'message': f'{nickname} is now admin / 已设为管理员'})
+
+@app.route('/api/admin/stats')
+@admin_required
+def api_admin_stats():
+    """Admin-only: get character claim statistics with user details."""
+    plays = load_plays()
+    db = get_db()
+    claims = db.execute('''
+        SELECT rc.*, u.nickname as user_nickname, u.age as user_age, u.room as user_room
+        FROM role_claims rc
+        LEFT JOIN users u ON rc.user_id = u.id
+        ORDER BY rc.play_id, rc.character_id
+    ''').fetchall()
+    users = db.execute('SELECT id, nickname, age, room, is_admin, created_at FROM users ORDER BY created_at').fetchall()
+    db.close()
+
+    plays_data = []
+    for play in plays:
+        chars_data = []
+        for char in play['characters']:
+            char_claims = [dict(c) for c in claims if c['play_id'] == play['id'] and c['character_id'] == char['id']]
+            chars_data.append({
+                'character_id': char['id'],
+                'character_name_en': char.get('name_en', ''),
+                'character_name_zh': char.get('name_zh', ''),
+                'emoji': char.get('emoji', ''),
+                'claimed_by': char_claims
+            })
+        plays_data.append({
+            'play_id': play['id'],
+            'title_en': play.get('title_en', ''),
+            'title_zh': play.get('title_zh', ''),
+            'characters': chars_data
+        })
+
+    return jsonify({
+        'plays': plays_data,
+        'users': [dict(u) for u in users],
+        'total_users': len(users),
+        'total_claims': len(claims)
+    })
+
+# ---- Play APIs ----
 
 @app.route('/api/plays')
 def api_plays():
@@ -190,8 +378,13 @@ def api_claim():
         return jsonify({'error': 'This role has already been claimed', 'claimed_by': existing['player_name']}), 409
 
     claim_id = str(uuid.uuid4())[:8]
-    db.execute('INSERT INTO role_claims (id, play_id, character_id, player_name, created_at) VALUES (?, ?, ?, ?, ?)',
-               (claim_id, play_id, character_id, player_name, datetime.now().isoformat()))
+    user = current_user()
+    user_id = user['id'] if user else None
+    # If logged in, use nickname as player_name
+    if user and not player_name:
+        player_name = user['nickname']
+    db.execute('INSERT INTO role_claims (id, play_id, character_id, player_name, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+               (claim_id, play_id, character_id, player_name, user_id, datetime.now().isoformat()))
     db.commit()
     db.close()
     return jsonify({'success': True, 'claim_id': claim_id})
@@ -323,9 +516,14 @@ def api_record():
     audio.save(filepath)
 
     rec_id = str(uuid.uuid4())[:8]
+    user = current_user()
+    user_id = user['id'] if user else None
+    # If logged in, use nickname as player_name default
+    if user and player_name == 'Unknown':
+        player_name = user['nickname']
     db = get_db()
-    db.execute('INSERT INTO recordings (id, play_id, character_id, scene_id, line_index, lang, file_path, player_name, is_reference, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-               (rec_id, play_id, character_id, scene_id, line_index, lang, filename, player_name, is_reference, datetime.now().isoformat()))
+    db.execute('INSERT INTO recordings (id, play_id, character_id, scene_id, line_index, lang, file_path, player_name, is_reference, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+               (rec_id, play_id, character_id, scene_id, line_index, lang, filename, player_name, is_reference, user_id, datetime.now().isoformat()))
     db.commit()
     db.close()
     return jsonify({'success': True, 'recording_id': rec_id, 'filename': filename})
@@ -383,9 +581,11 @@ def api_score():
 
     # Save score
     score_id = str(uuid.uuid4())[:8]
+    user = current_user()
+    user_id = user['id'] if user else None
     db = get_db()
-    db.execute('INSERT INTO scores (id, play_id, character_id, lang, scene_id, score, passed, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-               (score_id, play_id, character_id, lang, scene_id, score, int(passed), datetime.now().isoformat()))
+    db.execute('INSERT INTO scores (id, play_id, character_id, lang, scene_id, score, passed, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+               (score_id, play_id, character_id, lang, scene_id, score, int(passed), user_id, datetime.now().isoformat()))
     db.commit()
     db.close()
 

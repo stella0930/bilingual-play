@@ -10,6 +10,10 @@ project_dir = '/home/Stella0930/bilingual-play'
 if project_dir not in sys.path:
     sys.path.insert(0, project_dir)
 
+# Set environment variables (for production)
+os.environ.setdefault('SECRET_KEY', 'bilingual-playhouse-prod-2024-stella')
+os.environ.setdefault('ADMIN_SETUP_KEY', 'playhouse2024')
+
 # Set the Flask app
 from app import app as application
 
