@@ -1244,3 +1244,33 @@ body {
     color: var(--text);
     font-weight: 600;
 }
+
+/* Practice mode action buttons */
+.watch-practice-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin: 16px 0;
+    flex-wrap: wrap;
+}
+
+.btn-lg {
+    padding: 12px 28px;
+    font-size: 1.05rem;
+    border-radius: 14px;
+}
+
+.btn-warning {
+    background: var(--warning);
+    color: white;
+    border: none;
+}
+
+.btn-warning:hover {
+    background: #D97706;
+}
+
+.btn-warning:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}

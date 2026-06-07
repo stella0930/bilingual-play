@@ -259,13 +259,12 @@ const App = {
             this.data.watch = {
                 play,
                 lang: 'en',
-                mode: 'watch',      // 'watch' or 'practice'
-                characterId: null,   // selected character for practice mode
-                currentSceneIdx: 0,
+                mode: 'watch',        // 'watch' or 'practice'
+                characterId: null,     // selected character for practice mode
                 currentLineIdx: 0,
                 isPlaying: false,
                 isMuted: false,
-                speechUtterance: null
+                practiceStep: 'idle'   // 'idle' | 'ai-reading' | 'waiting-user' | 'user-reading' | 'scored'
             };
 
             // Flatten all lines with scene info for easy navigation
@@ -290,7 +289,6 @@ const App = {
             });
 
             const totalLines = this.data.watch.allLines.length;
-            const totalScenes = play.scenes.length;
 
             let html = `
                 <a class="back-link" onclick="App.navigate('/play/${playId}')">← Back / 返回</a>
@@ -312,7 +310,7 @@ const App = {
                 <div class="watch-char-select hidden" id="watchCharSelect">
                     <label>Choose your role / 选择你的角色：</label>
                     <select id="watchCharDropdown" onchange="App.selectWatchChar(this.value)">
-                        <option value="">-- Select --</option>
+                        <option value="">-- Select / 请选择 --</option>
                         ${play.characters.map(c => `<option value="${c.id}">${c.emoji} ${c.name_en} (${c.name_zh})</option>`).join('')}
                     </select>
                 </div>
@@ -343,7 +341,19 @@ const App = {
                     <button class="watch-ctrl-btn watch-play-btn" id="watchPlayBtn" onclick="App.watchTogglePlay()" title="Play / 播放">▶</button>
                     <button class="watch-ctrl-btn" onclick="App.watchNext()" title="Next / 下一句">⏭</button>
                     <button class="watch-ctrl-btn" id="watchMuteBtn" onclick="App.watchToggleMute()" title="Mute / 静音">🔊</button>
-                    <button class="watch-ctrl-btn hidden" id="watchMicBtn" onclick="App.watchPracticeLine()" title="Practice this line / 跟读这句">🎤</button>
+                </div>
+
+                <!-- Practice action buttons (visible in practice mode when it's user's turn) -->
+                <div class="watch-practice-actions hidden" id="watchPracticeActions">
+                    <button class="btn btn-warning btn-lg" id="watchReadBtn" onclick="App.watchAIReadLine()">
+                        🔊 Listen First / 先听标准读法
+                    </button>
+                    <button class="btn btn-success btn-lg hidden" id="watchFollowBtn" onclick="App.watchFollowRead()">
+                        🎤 跟读 / Read After Me
+                    </button>
+                    <button class="btn btn-primary btn-lg hidden" id="watchNextLineBtn" onclick="App.watchNextAfterPractice()">
+                        ▶ Continue / 继续下一句
+                    </button>
                 </div>
 
                 <!-- Progress -->
@@ -364,6 +374,8 @@ const App = {
             `;
 
             container.innerHTML = html;
+            // Show initial state
+            this.showWatchCurrentLine();
         } catch (e) {
             console.error('Watch page error:', e);
             container.innerHTML = `<div class="empty-state"><div class="emoji">😢</div><p>Failed to load: ${e.message}</p></div>`;
@@ -372,13 +384,14 @@ const App = {
 
     renderWatchScriptNav(play) {
         const w = this.data.watch;
-        const lang = w.lang;
+        const lang = w ? w.lang : 'en';
         let html = '';
         let globalIdx = 0;
-        for (const scene of play.scenes) {
+        for (let si = 0; si < play.scenes.length; si++) {
+            const scene = play.scenes[si];
             const title = lang === 'zh' ? scene.title_zh : (lang === 'bilingual' ? `${scene.title_en} / ${scene.title_zh}` : scene.title_en);
-            html += `<div class="watch-nav-scene" data-scene-idx="${play.scenes.indexOf(scene)}">
-                <div class="watch-nav-scene-title" onclick="App.watchJumpScene(${play.scenes.indexOf(scene)})">${scene.number > 0 ? `Scene ${scene.number}: ` : ''}${title}</div>`;
+            html += `<div class="watch-nav-scene" data-scene-idx="${si}">
+                <div class="watch-nav-scene-title" onclick="App.watchJumpScene(${si})">${scene.number > 0 ? `Scene ${scene.number}: ` : ''}${title}</div>`;
             for (const line of scene.lines) {
                 const char = play.characters.find(c => c.id === line.character_id);
                 const charName = char ? (lang === 'zh' ? char.name_zh : char.name_en) : '';
@@ -399,18 +412,57 @@ const App = {
         const w = this.data.watch;
         w.mode = mode;
         w.isPlaying = false;
+        w.practiceStep = 'idle';
         if (window.speechSynthesis) window.speechSynthesis.cancel();
 
         document.getElementById('modeWatch').classList.toggle('active', mode === 'watch');
         document.getElementById('modePractice').classList.toggle('active', mode === 'practice');
         document.getElementById('watchCharSelect').classList.toggle('hidden', mode === 'watch');
-        document.getElementById('watchMicBtn').classList.toggle('hidden', mode !== 'practice');
         document.getElementById('watchPlayBtn').textContent = '▶';
+
+        // Hide practice actions when switching to watch mode
+        if (mode === 'watch') {
+            document.getElementById('watchPracticeActions').classList.add('hidden');
+        }
+        // If in practice mode, check current line
+        if (mode === 'practice') {
+            this.checkPracticeLine();
+        }
     },
 
     selectWatchChar(charId) {
         this.data.watch.characterId = charId || null;
+        this.data.watch.practiceStep = 'idle';
         this.highlightWatchCurrentLine();
+        this.checkPracticeLine();
+    },
+
+    checkPracticeLine() {
+        const w = this.data.watch;
+        if (w.mode !== 'practice' || !w.characterId) {
+            document.getElementById('watchPracticeActions').classList.add('hidden');
+            return;
+        }
+        const lineData = w.allLines[w.currentLineIdx];
+        if (!lineData) return;
+
+        const isMyLine = lineData.characterId === w.characterId;
+        if (isMyLine) {
+            // Show practice actions
+            document.getElementById('watchPracticeActions').classList.remove('hidden');
+            document.getElementById('watchReadBtn').classList.remove('hidden');
+            document.getElementById('watchFollowBtn').classList.add('hidden');
+            document.getElementById('watchNextLineBtn').classList.add('hidden');
+            document.getElementById('watchPrompt').classList.remove('hidden');
+            w.practiceStep = 'waiting-user';
+        } else {
+            document.getElementById('watchPracticeActions').classList.add('hidden');
+            document.getElementById('watchPrompt').classList.add('hidden');
+            w.practiceStep = 'idle';
+        }
+        // Update card highlight
+        const card = document.getElementById('watchLineCard');
+        card.classList.toggle('watch-line-mine', isMyLine);
     },
 
     switchWatchLang(lang) {
@@ -429,10 +481,12 @@ const App = {
     watchTogglePlay() {
         const w = this.data.watch;
         if (w.isPlaying) {
+            // Pause
             w.isPlaying = false;
             if (window.speechSynthesis) window.speechSynthesis.cancel();
             document.getElementById('watchPlayBtn').textContent = '▶';
         } else {
+            // Play
             w.isPlaying = true;
             document.getElementById('watchPlayBtn').textContent = '⏸';
             this.watchPlayCurrentLine();
@@ -450,14 +504,14 @@ const App = {
             return;
         }
 
-        // In practice mode, skip lines that belong to the selected character
+        // In practice mode, check if this is the user's line
         if (w.mode === 'practice' && w.characterId && lineData.characterId === w.characterId) {
-            // This is the user's line — stop and prompt them
-            this.showWatchCurrentLine();
-            document.getElementById('watchPrompt').classList.remove('hidden');
-            document.getElementById('watchMicBtn').classList.remove('hidden');
+            // This is the user's line — stop auto-play and show practice actions
             w.isPlaying = false;
             document.getElementById('watchPlayBtn').textContent = '▶';
+            w.practiceStep = 'waiting-user';
+            this.showWatchCurrentLine();
+            this.checkPracticeLine();
             return;
         }
 
@@ -465,7 +519,7 @@ const App = {
         document.getElementById('watchPrompt').classList.add('hidden');
 
         if (w.isMuted || !window.speechSynthesis) {
-            // Muted mode: just wait then go next
+            // Muted mode: wait then advance
             const textLen = (w.lang === 'zh' ? lineData.textZh : lineData.textEn).length;
             const delay = Math.max(1500, textLen * 120);
             setTimeout(() => {
@@ -493,7 +547,6 @@ const App = {
             w.currentLineIdx++;
             this.watchPlayCurrentLine();
         } else {
-            // End of play
             w.isPlaying = false;
             document.getElementById('watchPlayBtn').textContent = '▶';
             this.showToast('🎬 The End! / 剧终！', 'success');
@@ -504,10 +557,14 @@ const App = {
         const w = this.data.watch;
         if (window.speechSynthesis) window.speechSynthesis.cancel();
         w.isPlaying = false;
+        w.practiceStep = 'idle';
         document.getElementById('watchPlayBtn').textContent = '▶';
+        document.getElementById('watchPracticeActions').classList.add('hidden');
+        document.getElementById('watchScoreResult').classList.add('hidden');
         if (w.currentLineIdx > 0) {
             w.currentLineIdx--;
             this.showWatchCurrentLine();
+            if (w.mode === 'practice') this.checkPracticeLine();
         }
     },
 
@@ -515,10 +572,14 @@ const App = {
         const w = this.data.watch;
         if (window.speechSynthesis) window.speechSynthesis.cancel();
         w.isPlaying = false;
+        w.practiceStep = 'idle';
         document.getElementById('watchPlayBtn').textContent = '▶';
+        document.getElementById('watchPracticeActions').classList.add('hidden');
+        document.getElementById('watchScoreResult').classList.add('hidden');
         if (w.currentLineIdx < w.allLines.length - 1) {
             w.currentLineIdx++;
             this.showWatchCurrentLine();
+            if (w.mode === 'practice') this.checkPracticeLine();
         }
     },
 
@@ -526,21 +587,28 @@ const App = {
         const w = this.data.watch;
         if (window.speechSynthesis) window.speechSynthesis.cancel();
         w.isPlaying = false;
+        w.practiceStep = 'idle';
         document.getElementById('watchPlayBtn').textContent = '▶';
+        document.getElementById('watchPracticeActions').classList.add('hidden');
+        document.getElementById('watchScoreResult').classList.add('hidden');
         w.currentLineIdx = idx;
         this.showWatchCurrentLine();
+        if (w.mode === 'practice') this.checkPracticeLine();
     },
 
     watchJumpScene(sceneIdx) {
         const w = this.data.watch;
         if (window.speechSynthesis) window.speechSynthesis.cancel();
         w.isPlaying = false;
+        w.practiceStep = 'idle';
         document.getElementById('watchPlayBtn').textContent = '▶';
-        // Find first line of this scene
+        document.getElementById('watchPracticeActions').classList.add('hidden');
+        document.getElementById('watchScoreResult').classList.add('hidden');
         const firstLine = w.allLines.find(l => l.sceneIdx === sceneIdx);
         if (firstLine) {
             w.currentLineIdx = w.allLines.indexOf(firstLine);
             this.showWatchCurrentLine();
+            if (w.mode === 'practice') this.checkPracticeLine();
         }
     },
 
@@ -549,6 +617,169 @@ const App = {
         w.isMuted = !w.isMuted;
         document.getElementById('watchMuteBtn').textContent = w.isMuted ? '🔇' : '🔊';
         if (w.isMuted && window.speechSynthesis) window.speechSynthesis.cancel();
+    },
+
+    // ===== Practice Mode: AI reads first, then user follows =====
+
+    watchAIReadLine() {
+        // AI reads the current line using SpeechSynthesis
+        const w = this.data.watch;
+        const lineData = w.allLines[w.currentLineIdx];
+        if (!lineData) return;
+
+        const readBtn = document.getElementById('watchReadBtn');
+        const followBtn = document.getElementById('watchFollowBtn');
+        const nextBtn = document.getElementById('watchNextLineBtn');
+        const scoreEl = document.getElementById('watchScoreResult');
+
+        readBtn.disabled = true;
+        readBtn.textContent = '🔊 Reading... / 朗读中...';
+        scoreEl.classList.add('hidden');
+
+        if (!window.speechSynthesis) {
+            // No TTS support, skip to follow mode
+            readBtn.disabled = false;
+            readBtn.textContent = '🔊 Listen First / 先听标准读法';
+            followBtn.classList.remove('hidden');
+            w.practiceStep = 'waiting-user';
+            return;
+        }
+
+        const text = w.lang === 'zh' ? lineData.textZh : (w.lang === 'bilingual' ? `${lineData.textEn}. ${lineData.textZh}` : lineData.textEn);
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = w.lang === 'zh' ? 'zh-CN' : 'en-US';
+        utterance.rate = 0.8;  // Slightly slower for practice
+
+        utterance.onend = () => {
+            readBtn.disabled = false;
+            readBtn.textContent = '🔊 Listen Again / 再听一遍';
+            followBtn.classList.remove('hidden');
+            w.practiceStep = 'waiting-user';
+        };
+
+        utterance.onerror = () => {
+            readBtn.disabled = false;
+            readBtn.textContent = '🔊 Listen Again / 再听一遍';
+            followBtn.classList.remove('hidden');
+            w.practiceStep = 'waiting-user';
+        };
+
+        window.speechSynthesis.speak(utterance);
+        w.practiceStep = 'ai-reading';
+    },
+
+    async watchFollowRead() {
+        // User reads the line, using SpeechRecognition
+        const w = this.data.watch;
+        const lineData = w.allLines[w.currentLineIdx];
+        if (!lineData) return;
+
+        const lang = w.lang === 'bilingual' ? 'en' : w.lang;
+        const expectedText = lang === 'en' ? lineData.textEn : lineData.textZh;
+
+        const followBtn = document.getElementById('watchFollowBtn');
+        const nextBtn = document.getElementById('watchNextLineBtn');
+        const scoreEl = document.getElementById('watchScoreResult');
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+        if (!SpeechRecognition) {
+            // Fallback: text input
+            followBtn.textContent = '🎤 Click to Read / 点击跟读';
+            const userInput = prompt(
+                lang === 'en'
+                    ? `Read this line and type what you said:\n"${expectedText}"`
+                    : `朗读这句话，然后输入你说的内容：\n"${expectedText}"`
+            );
+            if (userInput && userInput.trim()) {
+                try {
+                    const res = await fetch('/api/score', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            play_id: w.play.id,
+                            character_id: w.characterId || lineData.characterId,
+                            lang: lang,
+                            scene_id: lineData.sceneId,
+                            recognized_text: userInput.trim(),
+                            expected_text: expectedText
+                        })
+                    });
+                    const data = await res.json();
+                    this.showWatchScore(data);
+                } catch(e) {
+                    scoreEl.classList.remove('hidden');
+                    scoreEl.innerHTML = '❌ Scoring error / 评分出错';
+                }
+            }
+            nextBtn.classList.remove('hidden');
+            return;
+        }
+
+        // Use Web Speech API for voice recognition
+        w.practiceStep = 'user-reading';
+        followBtn.textContent = '🔴 Listening... / 正在听...';
+        followBtn.disabled = true;
+
+        const recognition = new SpeechRecognition();
+        recognition.lang = lang === 'en' ? 'en-US' : 'zh-CN';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+        recognition.continuous = false;
+
+        scoreEl.classList.remove('hidden');
+        scoreEl.innerHTML = '🔴 <span style="color:var(--danger);font-size:1rem">' + (lang === 'en' ? 'Listening... Please read now!' : '正在听...请朗读！') + '</span>';
+
+        recognition.onresult = async (event) => {
+            const recognized = event.results[0][0].transcript;
+            try {
+                const res = await fetch('/api/score', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        play_id: w.play.id,
+                        character_id: w.characterId || lineData.characterId,
+                        lang: lang,
+                        scene_id: lineData.sceneId,
+                        recognized_text: recognized,
+                        expected_text: expectedText
+                    })
+                });
+                const data = await res.json();
+                this.showWatchScore(data);
+            } catch(e) {
+                scoreEl.classList.remove('hidden');
+                scoreEl.innerHTML = '❌ Scoring error / 评分出错';
+            }
+            followBtn.textContent = '🎤 跟读 / Read Again';
+            followBtn.disabled = false;
+            nextBtn.classList.remove('hidden');
+            w.practiceStep = 'scored';
+        };
+
+        recognition.onerror = (event) => {
+            console.error('Speech recognition error:', event.error);
+            scoreEl.classList.remove('hidden');
+            if (event.error === 'not-allowed') {
+                scoreEl.innerHTML = '❌ Microphone blocked. Please allow microphone access in browser settings. / 麦克风被禁止，请在浏览器设置中允许';
+            } else if (event.error === 'no-speech') {
+                scoreEl.innerHTML = '⚠️ No speech detected. Try again. / 没有检测到语音，请再试一次';
+            } else {
+                scoreEl.innerHTML = `❌ Recognition error: ${event.error} / 识别出错`;
+            }
+            followBtn.textContent = '🎤 跟读 / Read Again';
+            followBtn.disabled = false;
+            nextBtn.classList.remove('hidden');
+        };
+
+        recognition.start();
+    },
+
+    watchNextAfterPractice() {
+        // Move to next line after practice is done
+        const w = this.data.watch;
+        document.getElementById('watchScoreResult').classList.add('hidden');
+        this.watchNext();
     },
 
     showWatchCurrentLine() {
@@ -591,15 +822,7 @@ const App = {
             sdEl.classList.add('hidden');
         }
 
-        // Practice mode prompt
-        const promptEl = document.getElementById('watchPrompt');
-        if (w.mode === 'practice' && w.characterId && lineData.characterId === w.characterId) {
-            promptEl.classList.remove('hidden');
-        } else {
-            promptEl.classList.add('hidden');
-        }
-
-        // Highlight card border for current character's line in practice mode
+        // Card highlight in practice mode
         const card = document.getElementById('watchLineCard');
         if (w.mode === 'practice' && w.characterId && lineData.characterId === w.characterId) {
             card.classList.add('watch-line-mine');
@@ -641,88 +864,12 @@ const App = {
         }
     },
 
-    async watchPracticeLine() {
-        const w = this.data.watch;
-        const lineData = w.allLines[w.currentLineIdx];
-        if (!lineData) return;
-
-        const lang = w.lang === 'bilingual' ? 'en' : w.lang;
-        const expectedText = lang === 'en' ? lineData.textEn : lineData.textZh;
-
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        const scoreEl = document.getElementById('watchScoreResult');
-
-        if (!SpeechRecognition) {
-            // Fallback
-            const userInput = prompt(
-                lang === 'en'
-                    ? `Read this line and type what you said:\n"${expectedText}"`
-                    : `朗读这句话，然后输入你说的内容：\n"${expectedText}"`
-            );
-            if (userInput && userInput.trim()) {
-                const res = await fetch('/api/score', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        play_id: w.play.id,
-                        character_id: w.characterId || lineData.characterId,
-                        lang: lang,
-                        scene_id: lineData.sceneId,
-                        recognized_text: userInput.trim(),
-                        expected_text: expectedText
-                    })
-                });
-                const data = await res.json();
-                this.showWatchScore(data);
-            }
-            return;
-        }
-
-        // Use Web Speech API
-        const recognition = new SpeechRecognition();
-        recognition.lang = lang === 'en' ? 'en-US' : 'zh-CN';
-        recognition.interimResults = false;
-        recognition.maxAlternatives = 1;
-
-        scoreEl.classList.remove('hidden');
-        scoreEl.innerHTML = '🔴 <span style="color:var(--danger)">' + (lang === 'en' ? 'Listening...' : '正在听...') + '</span>';
-
-        recognition.onresult = async (event) => {
-            const recognized = event.results[0][0].transcript;
-            const res = await fetch('/api/score', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    play_id: w.play.id,
-                    character_id: w.characterId || lineData.characterId,
-                    lang: lang,
-                    scene_id: lineData.sceneId,
-                    recognized_text: recognized,
-                    expected_text: expectedText
-                })
-            });
-            const data = await res.json();
-            this.showWatchScore(data);
-        };
-
-        recognition.onerror = () => {
-            scoreEl.innerHTML = '❌ Speech recognition error / 语音识别出错';
-        };
-
-        recognition.start();
-    },
-
     showWatchScore(data) {
         const scoreEl = document.getElementById('watchScoreResult');
         scoreEl.classList.remove('hidden');
         const icon = data.passed ? '✅' : '❌';
         const color = data.passed ? 'var(--success)' : 'var(--danger)';
         scoreEl.innerHTML = `${icon} <span style="color:${color};font-weight:700;font-size:1.2rem">${data.score}分</span> ${data.passed ? '/ Pass! ✨' : '(需80分以上)'}`;
-
-        // Auto-hide after 5 seconds
-        setTimeout(() => {
-            scoreEl.classList.add('hidden');
-        }, 5000);
     },
 
     // ========== Practice Page ==========
