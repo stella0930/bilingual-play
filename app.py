@@ -5,7 +5,7 @@ from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'bilingual-playhouse-dev-key-2024')
+app.secret_key = os.environ.get('SECRET_KEY', 'bilingual-playhouse-dev-key-2026')
 app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(__file__), 'static', 'uploads')
 app.config['DATABASE'] = os.path.join(os.path.dirname(__file__), 'data', 'bilingual.db')
 app.config['PLAYS_FILE'] = os.path.join(os.path.dirname(__file__), 'data', 'plays.json')
@@ -284,7 +284,7 @@ def api_admin_promote():
     nickname = data.get('nickname', '').strip()
     setup_key = data.get('setup_key', '')
 
-    expected_key = os.environ.get('ADMIN_SETUP_KEY', 'playhouse2024')
+    expected_key = os.environ.get('ADMIN_SETUP_KEY', 'playhouse2026')
     if setup_key != expected_key:
         return jsonify({'error': 'Invalid setup key / 设置密钥错误'}), 403
 
