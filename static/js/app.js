@@ -623,10 +623,12 @@ const App = {
     watchPrev() {
         const w = this.data.watch;
         if (window.speechSynthesis) window.speechSynthesis.cancel();
+        this.watchStopFollowRead();
         w.isPlaying = false;
         w.practiceStep = 'idle';
         document.getElementById('watchPlayBtn').textContent = '▶';
         document.getElementById('watchPracticeActions').classList.add('hidden');
+        document.getElementById('watchUploadRef').classList.add('hidden');
         document.getElementById('watchScoreResult').classList.add('hidden');
         if (w.currentLineIdx > 0) {
             w.currentLineIdx--;
@@ -638,10 +640,12 @@ const App = {
     watchNext() {
         const w = this.data.watch;
         if (window.speechSynthesis) window.speechSynthesis.cancel();
+        this.watchStopFollowRead();
         w.isPlaying = false;
         w.practiceStep = 'idle';
         document.getElementById('watchPlayBtn').textContent = '▶';
         document.getElementById('watchPracticeActions').classList.add('hidden');
+        document.getElementById('watchUploadRef').classList.add('hidden');
         document.getElementById('watchScoreResult').classList.add('hidden');
         if (w.currentLineIdx < w.allLines.length - 1) {
             w.currentLineIdx++;
@@ -653,10 +657,12 @@ const App = {
     watchJumpLine(idx) {
         const w = this.data.watch;
         if (window.speechSynthesis) window.speechSynthesis.cancel();
+        this.watchStopFollowRead();
         w.isPlaying = false;
         w.practiceStep = 'idle';
         document.getElementById('watchPlayBtn').textContent = '▶';
         document.getElementById('watchPracticeActions').classList.add('hidden');
+        document.getElementById('watchUploadRef').classList.add('hidden');
         document.getElementById('watchScoreResult').classList.add('hidden');
         w.currentLineIdx = idx;
         this.showWatchCurrentLine();
@@ -666,10 +672,12 @@ const App = {
     watchJumpScene(sceneIdx) {
         const w = this.data.watch;
         if (window.speechSynthesis) window.speechSynthesis.cancel();
+        this.watchStopFollowRead();
         w.isPlaying = false;
         w.practiceStep = 'idle';
         document.getElementById('watchPlayBtn').textContent = '▶';
         document.getElementById('watchPracticeActions').classList.add('hidden');
+        document.getElementById('watchUploadRef').classList.add('hidden');
         document.getElementById('watchScoreResult').classList.add('hidden');
         const firstLine = w.allLines.find(l => l.sceneIdx === sceneIdx);
         if (firstLine) {
@@ -736,72 +744,136 @@ const App = {
         const followBtn = document.getElementById('watchFollowBtn');
         const nextBtn = document.getElementById('watchNextLineBtn');
         const scoreEl = document.getElementById('watchScoreResult');
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-        if (!SpeechRecognition) {
-            scoreEl.classList.remove('hidden');
-            scoreEl.innerHTML = '⚠️ Voice recognition not supported. Use "⌨️ Type to Score" instead. / 浏览器不支持语音识别，请用打字评分按钮。';
-            followBtn.textContent = '🎤 跟读 / Read Again';
-            followBtn.disabled = false;
-            nextBtn.classList.remove('hidden');
+        // If already recording, stop it
+        if (w._isFollowRecording) {
+            this.watchStopFollowRead();
             return;
         }
 
-        w.practiceStep = 'user-reading';
-        followBtn.textContent = '🔴 Listening... / 正在听...';
-        followBtn.disabled = true;
-
-        const recognition = new SpeechRecognition();
-        recognition.lang = lang === 'en' ? 'en-US' : 'zh-CN';
-        recognition.interimResults = false;
-        recognition.maxAlternatives = 1;
-        recognition.continuous = false;
-
-        scoreEl.classList.remove('hidden');
-        scoreEl.innerHTML = '🎤 <span style="color:var(--primary);font-size:1rem">' + (lang === 'en' ? 'Listening now! Please read the line aloud!' : '正在听！请大声朗读这句话！') + '</span>';
-
-        const recogTimeout = setTimeout(() => {
-            scoreEl.innerHTML = '⚠️ <span style="color:var(--warning);font-size:0.95rem">' + (lang === 'en' ? 'Taking too long? Try "⌨️ Type to Score" instead.' : '等太久？试试"⌨️ 打字评分"按钮。') + '</span>';
-        }, 8000);
-
-        recognition.onresult = async (event) => {
-            clearTimeout(recogTimeout);
-            const recognized = event.results[0][0].transcript;
-            await this.watchScoreText(recognized, expectedText, lang, lineData);
-            followBtn.textContent = '🎤 跟读 / Read Again';
-            followBtn.disabled = false;
-            nextBtn.classList.remove('hidden');
-            w.practiceStep = 'scored';
-        };
-
-        recognition.onerror = (event) => {
-            clearTimeout(recogTimeout);
-            let msg = '';
-            if (event.error === 'not-allowed') {
-                msg = '❌ Microphone blocked. Allow microphone in browser settings, or use "⌨️ Type to Score". / 麦克风被禁止，请用打字评分。';
-            } else if (event.error === 'no-speech') {
-                msg = '⚠️ No speech detected. Try again or use "⌨️ Type to Score". / 没有检测到语音，请用打字评分。';
-            } else if (event.error === 'network') {
-                msg = '⚠️ Network error. Use "⌨️ Type to Score" instead. / 网络错误，请用打字评分。';
-            } else if (event.error === 'aborted') {
-                msg = '⚠️ Recognition interrupted. Try again or use "⌨️ Type to Score". / 识别被中断，请用打字评分。';
-            } else {
-                msg = '⚠️ Recognition error. Use "⌨️ Type to Score" instead. / 识别出错，请用打字评分。';
-            }
+        // Try to get microphone access
+        let stream;
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        } catch(e) {
             scoreEl.classList.remove('hidden');
-            scoreEl.innerHTML = msg;
-            followBtn.textContent = '🎤 跟读 / Read Again';
-            followBtn.disabled = false;
-            nextBtn.classList.remove('hidden');
-        };
-
-        try { recognition.start(); } catch(e) {
-            clearTimeout(recogTimeout);
-            scoreEl.classList.remove('hidden');
-            scoreEl.innerHTML = '⚠️ Cannot start voice recognition. Use "⌨️ Type to Score" instead. / 请用打字评分。';
-            followBtn.textContent = '🎤 跟读 / Read Again';
-            followBtn.disabled = false;
+            scoreEl.innerHTML = '❌ Cannot access microphone. Use "⌨️ Type to Score" instead. / 无法访问麦克风，请用打字评分。';
+            return;
         }
+
+        w._isFollowRecording = true;
+        w._followStream = stream;
+        w._followAudioChunks = [];
+        w._followRecognition = null;
+
+        // Start MediaRecorder to save audio for playback
+        const mediaRecorder = new MediaRecorder(stream);
+        w._followMediaRecorder = mediaRecorder;
+        mediaRecorder.ondataavailable = (e) => {
+            w._followAudioChunks.push(e.data);
+        };
+        mediaRecorder.start();
+
+        // Also start SpeechRecognition if available (for scoring)
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            const recognition = new SpeechRecognition();
+            recognition.lang = lang === 'en' ? 'en-US' : 'zh-CN';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+            recognition.continuous = false;
+            w._followRecognition = recognition;
+
+            recognition.onresult = async (event) => {
+                const recognized = event.results[0][0].transcript;
+                // Stop recording first
+                await this.watchStopFollowRead();
+                // Score
+                await this.watchScoreText(recognized, expectedText, lang, lineData);
+                followBtn.textContent = '🎤 跟读 / Read Again';
+                followBtn.disabled = false;
+                nextBtn.classList.remove('hidden');
+                w.practiceStep = 'scored';
+            };
+
+            recognition.onerror = (event) => {
+                console.warn('Speech recognition error:', event.error);
+                // Don't stop recording - let user stop manually and use type fallback
+            };
+
+            try { recognition.start(); } catch(e) {
+                console.warn('Cannot start recognition');
+            }
+        }
+
+        // Update UI
+        followBtn.textContent = '⏹ Stop / 点击停止';
+        followBtn.disabled = false;
+        scoreEl.classList.remove('hidden');
+        scoreEl.innerHTML = '🎤 <span style="color:var(--primary);font-size:1rem">' + (lang === 'en' ? 'Recording now! Read the line aloud, then click Stop.' : '正在录音！请大声朗读，然后点击停止。') + '</span>';
+        w.practiceStep = 'user-reading';
+    },
+
+    async watchStopFollowRead() {
+        const w = this.data.watch;
+        if (!w._isFollowRecording) return;
+        w._isFollowRecording = false;
+
+        const scoreEl = document.getElementById('watchScoreResult');
+        const followBtn = document.getElementById('watchFollowBtn');
+        const nextBtn = document.getElementById('watchNextLineBtn');
+        const lang = w.lang === 'bilingual' ? 'en' : w.lang;
+
+        // Stop SpeechRecognition
+        if (w._followRecognition) {
+            try { w._followRecognition.stop(); } catch(e) {}
+            w._followRecognition = null;
+        }
+
+        // Stop MediaRecorder
+        return new Promise((resolve) => {
+            if (w._followMediaRecorder && w._followMediaRecorder.state !== 'inactive') {
+                w._followMediaRecorder.onstop = () => {
+                    // Stop microphone
+                    if (w._followStream) {
+                        w._followStream.getTracks().forEach(t => t.stop());
+                    }
+
+                    // Create audio blob for playback
+                    const blob = new Blob(w._followAudioChunks, { type: 'audio/webm' });
+                    const url = URL.createObjectURL(blob);
+
+                    // Show playback + score area
+                    scoreEl.classList.remove('hidden');
+                    scoreEl.innerHTML = `
+                        <div class="watch-playback">
+                            <div class="watch-playback-label">🎧 Your recording / 你的录音：</div>
+                            <audio controls src="${url}" style="width:100%;max-width:400px;margin:8px 0"></audio>
+                        </div>
+                        <div class="watch-score-area" id="watchScoreArea"></div>
+                    `;
+
+                    followBtn.textContent = '🎤 跟读 / Read Again';
+                    nextBtn.classList.remove('hidden');
+
+                    // Try to score if we got recognition result
+                    // If not, show typing option
+                    const scoreArea = document.getElementById('watchScoreArea');
+                    scoreArea.innerHTML = `
+                        <button class="btn btn-outline btn-sm" onclick="App.watchTypeRead()" style="margin-right:8px">⌨️ Type to Score / 打字评分</button>
+                        <span style="color:var(--text-secondary);font-size:0.85rem">${lang === 'en' ? '(If voice scoring failed, type what you read)' : '（如果语音评分失败，请打字输入你读的内容）'}</span>
+                    `;
+
+                    resolve();
+                };
+                w._followMediaRecorder.stop();
+            } else {
+                if (w._followStream) {
+                    w._followStream.getTracks().forEach(t => t.stop());
+                }
+                resolve();
+            }
+        });
     },
 
     async watchTypeRead() {
@@ -829,8 +901,14 @@ const App = {
     async watchScoreText(recognizedText, expectedText, lang, lineData) {
         const w = this.data.watch;
         const scoreEl = document.getElementById('watchScoreResult');
-        scoreEl.classList.remove('hidden');
-        scoreEl.innerHTML = '⏳ Scoring... / 评分中...';
+        // If there's a score area inside (from recording playback), put score there
+        const scoreArea = document.getElementById('watchScoreArea');
+        const targetEl = scoreArea || scoreEl;
+
+        if (targetEl) {
+            targetEl.classList.remove('hidden');
+            targetEl.innerHTML = '⏳ Scoring... / 评分中...';
+        }
         try {
             const res = await fetch('/api/score', {
                 method: 'POST',
@@ -845,10 +923,15 @@ const App = {
                 })
             });
             const data = await res.json();
-            this.showWatchScore(data);
+            const icon = data.passed ? '✅' : '❌';
+            const color = data.passed ? 'var(--success)' : 'var(--danger)';
+            if (targetEl) {
+                targetEl.innerHTML = `${icon} <span style="color:${color};font-weight:700;font-size:1.2rem">${data.score}分</span> ${data.passed ? '/ Pass! ✨' : '(需80分以上)'}`;
+            }
         } catch(e) {
-            scoreEl.classList.remove('hidden');
-            scoreEl.innerHTML = '❌ Scoring error / 评分出错';
+            if (targetEl) {
+                targetEl.innerHTML = '❌ Scoring error / 评分出错';
+            }
         }
     },
 

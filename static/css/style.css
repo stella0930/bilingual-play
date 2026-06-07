@@ -1303,3 +1303,23 @@ body {
     font-size: 0.85rem;
     color: var(--text-secondary);
 }
+
+/* Recording playback area */
+.watch-playback {
+    margin-bottom: 12px;
+    padding: 12px;
+    background: var(--bg);
+    border-radius: 8px;
+}
+
+.watch-playback-label {
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+    color: var(--primary);
+}
+
+.watch-score-area {
+    margin-top: 8px;
+    padding: 8px 0;
+}
