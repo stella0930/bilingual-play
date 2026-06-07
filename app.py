@@ -31,6 +31,7 @@ def init_db():
             play_id INTEGER,
             character_id TEXT,
             scene_id TEXT,
+            line_index INTEGER DEFAULT -1,
             lang TEXT DEFAULT 'en',
             file_path TEXT NOT NULL,
             player_name TEXT,
@@ -48,6 +49,11 @@ def init_db():
             created_at TEXT
         );
     ''')
+    # Migrate: add line_index column if not exists
+    try:
+        db.execute('ALTER TABLE recordings ADD COLUMN line_index INTEGER DEFAULT -1')
+    except:
+        pass  # Column already exists
     db.commit()
     db.close()
 
@@ -305,6 +311,7 @@ def api_record():
     play_id = request.form.get('play_id')
     character_id = request.form.get('character_id')
     scene_id = request.form.get('scene_id', 'all')
+    line_index = int(request.form.get('line_index', -1))
     player_name = request.form.get('player_name', 'Unknown')
     lang = request.form.get('lang', 'en')
     is_reference = int(request.form.get('is_reference', 0))
@@ -317,8 +324,8 @@ def api_record():
 
     rec_id = str(uuid.uuid4())[:8]
     db = get_db()
-    db.execute('INSERT INTO recordings (id, play_id, character_id, scene_id, lang, file_path, player_name, is_reference, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-               (rec_id, play_id, character_id, scene_id, lang, filename, player_name, is_reference, datetime.now().isoformat()))
+    db.execute('INSERT INTO recordings (id, play_id, character_id, scene_id, line_index, lang, file_path, player_name, is_reference, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+               (rec_id, play_id, character_id, scene_id, line_index, lang, filename, player_name, is_reference, datetime.now().isoformat()))
     db.commit()
     db.close()
     return jsonify({'success': True, 'recording_id': rec_id, 'filename': filename})
@@ -337,6 +344,23 @@ def api_recordings(play_id, character_id):
 @app.route('/api/recording/<filename>')
 def api_recording_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+@app.route('/api/reference-audio/<int:play_id>')
+def api_reference_audio(play_id):
+    """Get all reference recordings for a play, organized by character+line+lang."""
+    lang = request.args.get('lang', None)
+    db = get_db()
+    if lang:
+        recs = db.execute('SELECT * FROM recordings WHERE play_id = ? AND is_reference = 1 AND lang = ? ORDER BY created_at', (play_id, lang)).fetchall()
+    else:
+        recs = db.execute('SELECT * FROM recordings WHERE play_id = ? AND is_reference = 1 ORDER BY created_at', (play_id,)).fetchall()
+    db.close()
+    # Group by character_id + line_index + lang (take the latest for each)
+    latest = {}
+    for r in recs:
+        key = f"{r['character_id']}|{r['line_index']}|{r['lang']}"
+        latest[key] = dict(r)
+    return jsonify(list(latest.values()))
 
 @app.route('/api/score', methods=['POST'])
 def api_score():

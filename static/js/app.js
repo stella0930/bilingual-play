@@ -256,6 +256,19 @@ const App = {
         try {
             const res = await fetch(`/api/play/${playId}`);
             const play = await res.json();
+
+            // Fetch reference audio recordings
+            let refAudio = {};
+            try {
+                const refRes = await fetch(`/api/reference-audio/${playId}`);
+                const refData = await refRes.json();
+                // Build a lookup: "characterId|lineIndex|lang" -> file_path
+                refData.forEach(r => {
+                    const key = `${r.character_id}|${r.line_index}|${r.lang}`;
+                    refAudio[key] = r.file_path;
+                });
+            } catch(e) { console.warn('Could not load reference audio:', e); }
+
             this.data.watch = {
                 play,
                 lang: 'en',
@@ -264,7 +277,8 @@ const App = {
                 currentLineIdx: 0,
                 isPlaying: false,
                 isMuted: false,
-                practiceStep: 'idle'   // 'idle' | 'ai-reading' | 'waiting-user' | 'user-reading' | 'scored'
+                practiceStep: 'idle',  // 'idle' | 'ai-reading' | 'waiting-user' | 'user-reading' | 'scored'
+                refAudio: refAudio     // reference audio lookup
             };
 
             // Flatten all lines with scene info for easy navigation
@@ -493,6 +507,54 @@ const App = {
         }
     },
 
+    // Helper: play a line using reference audio (priority) or SpeechSynthesis (fallback)
+    // Returns a Promise that resolves when playback is done
+    watchPlayAudio(lineData, lang) {
+        return new Promise((resolve) => {
+            const w = this.data.watch;
+
+            // 1. Check if we have a reference audio for this line
+            const lineIndex = w.allLines.indexOf(lineData);
+            const refKey = `${lineData.characterId}|${lineIndex}|${lang === 'bilingual' ? 'en' : lang}`;
+            const refFile = w.refAudio[refKey];
+
+            if (refFile && !w.isMuted) {
+                // Play reference audio (human recording)
+                const audio = new Audio(`/api/recording/${refFile}`);
+                audio.onended = () => resolve();
+                audio.onerror = () => {
+                    // Fallback to TTS if audio fails
+                    this.watchPlayTTS(lineData, lang).then(resolve);
+                };
+                audio.play().catch(() => {
+                    this.watchPlayTTS(lineData, lang).then(resolve);
+                });
+            } else if (!w.isMuted && window.speechSynthesis) {
+                // Fallback to SpeechSynthesis
+                this.watchPlayTTS(lineData, lang).then(resolve);
+            } else {
+                // Muted mode: wait based on text length
+                const textLen = (lang === 'zh' ? lineData.textZh : lineData.textEn).length;
+                const delay = Math.max(1500, textLen * 120);
+                setTimeout(resolve, delay);
+            }
+        });
+    },
+
+    // Helper: play TTS for a line
+    watchPlayTTS(lineData, lang) {
+        return new Promise((resolve) => {
+            if (!window.speechSynthesis) { resolve(); return; }
+            const text = lang === 'zh' ? lineData.textZh : (lang === 'bilingual' ? `${lineData.textEn}. ${lineData.textZh}` : lineData.textEn);
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = lang === 'zh' ? 'zh-CN' : 'en-US';
+            utterance.rate = 0.85;
+            utterance.onend = resolve;
+            utterance.onerror = resolve;
+            window.speechSynthesis.speak(utterance);
+        });
+    },
+
     watchPlayCurrentLine() {
         const w = this.data.watch;
         if (!w.isPlaying) return;
@@ -518,27 +580,10 @@ const App = {
         this.showWatchCurrentLine();
         document.getElementById('watchPrompt').classList.add('hidden');
 
-        if (w.isMuted || !window.speechSynthesis) {
-            // Muted mode: wait then advance
-            const textLen = (w.lang === 'zh' ? lineData.textZh : lineData.textEn).length;
-            const delay = Math.max(1500, textLen * 120);
-            setTimeout(() => {
-                if (w.isPlaying) this.watchAdvance();
-            }, delay);
-        } else {
-            // Use SpeechSynthesis to read the line
-            const text = w.lang === 'zh' ? lineData.textZh : (w.lang === 'bilingual' ? `${lineData.textEn}. ${lineData.textZh}` : lineData.textEn);
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = w.lang === 'zh' ? 'zh-CN' : 'en-US';
-            utterance.rate = 0.85;
-            utterance.onend = () => {
-                if (w.isPlaying) this.watchAdvance();
-            };
-            utterance.onerror = () => {
-                if (w.isPlaying) this.watchAdvance();
-            };
-            window.speechSynthesis.speak(utterance);
-        }
+        // Play audio (reference audio or TTS), then advance
+        this.watchPlayAudio(lineData, w.lang).then(() => {
+            if (w.isPlaying) this.watchAdvance();
+        });
     },
 
     watchAdvance() {
@@ -622,49 +667,48 @@ const App = {
     // ===== Practice Mode: AI reads first, then user follows =====
 
     watchAIReadLine() {
-        // AI reads the current line using SpeechSynthesis
+        // Play standard pronunciation: reference audio (human) first, fallback to TTS
         const w = this.data.watch;
         const lineData = w.allLines[w.currentLineIdx];
         if (!lineData) return;
 
         const readBtn = document.getElementById('watchReadBtn');
         const followBtn = document.getElementById('watchFollowBtn');
-        const nextBtn = document.getElementById('watchNextLineBtn');
         const scoreEl = document.getElementById('watchScoreResult');
 
         readBtn.disabled = true;
         readBtn.textContent = '🔊 Reading... / 朗读中...';
         scoreEl.classList.add('hidden');
 
-        if (!window.speechSynthesis) {
-            // No TTS support, skip to follow mode
+        // Check for reference audio
+        const lineIndex = w.currentLineIdx;
+        const lang = w.lang === 'bilingual' ? 'en' : w.lang;
+        const refKey = `${lineData.characterId}|${lineIndex}|${lang}`;
+        const refFile = w.refAudio[refKey];
+
+        const finishReading = () => {
             readBtn.disabled = false;
-            readBtn.textContent = '🔊 Listen First / 先听标准读法';
+            readBtn.textContent = '🔊 Listen Again / 再听一遍';
             followBtn.classList.remove('hidden');
             w.practiceStep = 'waiting-user';
-            return;
+        };
+
+        if (refFile) {
+            // Play human reference audio
+            const audio = new Audio(`/api/recording/${refFile}`);
+            audio.onended = finishReading;
+            audio.onerror = () => {
+                // Fallback to TTS
+                this.watchPlayTTS(lineData, w.lang).then(finishReading);
+            };
+            audio.play().catch(() => {
+                this.watchPlayTTS(lineData, w.lang).then(finishReading);
+            });
+        } else {
+            // No reference audio, use TTS
+            this.watchPlayTTS(lineData, w.lang).then(finishReading);
         }
 
-        const text = w.lang === 'zh' ? lineData.textZh : (w.lang === 'bilingual' ? `${lineData.textEn}. ${lineData.textZh}` : lineData.textEn);
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = w.lang === 'zh' ? 'zh-CN' : 'en-US';
-        utterance.rate = 0.8;  // Slightly slower for practice
-
-        utterance.onend = () => {
-            readBtn.disabled = false;
-            readBtn.textContent = '🔊 Listen Again / 再听一遍';
-            followBtn.classList.remove('hidden');
-            w.practiceStep = 'waiting-user';
-        };
-
-        utterance.onerror = () => {
-            readBtn.disabled = false;
-            readBtn.textContent = '🔊 Listen Again / 再听一遍';
-            followBtn.classList.remove('hidden');
-            w.practiceStep = 'waiting-user';
-        };
-
-        window.speechSynthesis.speak(utterance);
         w.practiceStep = 'ai-reading';
     },
 
@@ -1019,6 +1063,7 @@ const App = {
     renderPracticeScoreLines(bilingualData) {
         let html = '';
         let lineIndex = 0;
+        const { playId, characterId } = this.data.practice;
         for (const scene of bilingualData.scenes) {
             html += `<div class="score-scene">
                 <h4>Scene ${scene.scene_number}: ${scene.scene_title_en} / ${scene.scene_title_zh}</h4>`;
@@ -1031,6 +1076,14 @@ const App = {
                     <div class="score-line-actions">
                         <button class="btn btn-primary btn-sm" onclick="App.practiceLine(${lineIndex}, 'en')">🎤 Practice EN</button>
                         <button class="btn btn-success btn-sm" onclick="App.practiceLine(${lineIndex}, 'zh')">🎤 练习中文</button>
+                        <label class="btn btn-outline btn-sm ref-upload-btn" title="Upload standard pronunciation / 上传标准读音">
+                            📤 Upload Ref
+                            <input type="file" accept="audio/*" style="display:none" onchange="App.uploadRefAudio(this, ${playId}, '${characterId}', ${lineIndex}, 'en')">
+                        </label>
+                        <label class="btn btn-outline btn-sm ref-upload-btn" title="上传中文标准读音">
+                            📤 上传读音
+                            <input type="file" accept="audio/*" style="display:none" onchange="App.uploadRefAudio(this, ${playId}, '${characterId}', ${lineIndex}, 'zh')">
+                        </label>
                         <span class="score-result" id="scoreResult_${lineIndex}"></span>
                     </div>
                 </div>`;
@@ -1040,6 +1093,33 @@ const App = {
         html += '</div>';
         this.data.practice.scoreLineData = bilingualData;
         return html;
+    },
+
+    async uploadRefAudio(inputEl, playId, characterId, lineIndex, lang) {
+        const file = inputEl.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('audio', file);
+        formData.append('play_id', playId);
+        formData.append('character_id', characterId);
+        formData.append('scene_id', 'practice');
+        formData.append('line_index', lineIndex);
+        formData.append('lang', lang);
+        formData.append('player_name', 'Reference');
+        formData.append('is_reference', '1');
+
+        try {
+            const res = await fetch('/api/record', { method: 'POST', body: formData });
+            if (res.ok) {
+                this.showToast(`✅ ${lang === 'en' ? 'English' : 'Chinese'} reference audio uploaded! / ${lang === 'en' ? '英文' : '中文'}标准读音已上传！`, 'success');
+                inputEl.value = '';
+            } else {
+                this.showToast('❌ Upload failed / 上传失败', 'error');
+            }
+        } catch(e) {
+            this.showToast('❌ Upload error / 上传出错', 'error');
+        }
     },
 
     async practiceLine(lineIndex, lang) {
