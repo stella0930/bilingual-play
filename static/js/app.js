@@ -365,9 +365,26 @@ const App = {
                     <button class="btn btn-success btn-lg hidden" id="watchFollowBtn" onclick="App.watchFollowRead()">
                         🎤 跟读 / Read After Me
                     </button>
+                    <button class="btn btn-outline btn-lg hidden" id="watchTypeBtn" onclick="App.watchTypeRead()">
+                        ⌨️ Type to Score / 打字评分
+                    </button>
                     <button class="btn btn-primary btn-lg hidden" id="watchNextLineBtn" onclick="App.watchNextAfterPractice()">
                         ▶ Continue / 继续下一句
                     </button>
+                </div>
+
+                <!-- Upload reference audio (visible in practice mode when it's user's turn) -->
+                <div class="watch-upload-ref hidden" id="watchUploadRef">
+                    <div class="watch-upload-label">📤 Upload your standard pronunciation / 上传你的标准读音：</div>
+                    <label class="btn btn-outline btn-sm ref-upload-btn">
+                        🇬🇧 English MP3
+                        <input type="file" accept="audio/*,.mp3,.wav,.webm,.m4a" style="display:none" onchange="App.uploadRefAudioFromWatch(this, 'en')">
+                    </label>
+                    <label class="btn btn-outline btn-sm ref-upload-btn">
+                        🇨🇳 中文 MP3
+                        <input type="file" accept="audio/*,.mp3,.wav,.webm,.m4a" style="display:none" onchange="App.uploadRefAudioFromWatch(this, 'zh')">
+                    </label>
+                    <span class="watch-upload-hint" id="watchUploadHint"></span>
                 </div>
 
                 <!-- Progress -->
@@ -455,6 +472,7 @@ const App = {
         const w = this.data.watch;
         if (w.mode !== 'practice' || !w.characterId) {
             document.getElementById('watchPracticeActions').classList.add('hidden');
+            document.getElementById('watchUploadRef').classList.add('hidden');
             return;
         }
         const lineData = w.allLines[w.currentLineIdx];
@@ -466,11 +484,15 @@ const App = {
             document.getElementById('watchPracticeActions').classList.remove('hidden');
             document.getElementById('watchReadBtn').classList.remove('hidden');
             document.getElementById('watchFollowBtn').classList.add('hidden');
+            document.getElementById('watchTypeBtn').classList.add('hidden');
             document.getElementById('watchNextLineBtn').classList.add('hidden');
             document.getElementById('watchPrompt').classList.remove('hidden');
+            // Show upload reference audio area
+            document.getElementById('watchUploadRef').classList.remove('hidden');
             w.practiceStep = 'waiting-user';
         } else {
             document.getElementById('watchPracticeActions').classList.add('hidden');
+            document.getElementById('watchUploadRef').classList.add('hidden');
             document.getElementById('watchPrompt').classList.add('hidden');
             w.practiceStep = 'idle';
         }
@@ -667,20 +689,19 @@ const App = {
     // ===== Practice Mode: AI reads first, then user follows =====
 
     watchAIReadLine() {
-        // Play standard pronunciation: reference audio (human) first, fallback to TTS
         const w = this.data.watch;
         const lineData = w.allLines[w.currentLineIdx];
         if (!lineData) return;
 
         const readBtn = document.getElementById('watchReadBtn');
         const followBtn = document.getElementById('watchFollowBtn');
+        const typeBtn = document.getElementById('watchTypeBtn');
         const scoreEl = document.getElementById('watchScoreResult');
 
         readBtn.disabled = true;
         readBtn.textContent = '🔊 Reading... / 朗读中...';
         scoreEl.classList.add('hidden');
 
-        // Check for reference audio
         const lineIndex = w.currentLineIdx;
         const lang = w.lang === 'bilingual' ? 'en' : w.lang;
         const refKey = `${lineData.characterId}|${lineIndex}|${lang}`;
@@ -690,77 +711,42 @@ const App = {
             readBtn.disabled = false;
             readBtn.textContent = '🔊 Listen Again / 再听一遍';
             followBtn.classList.remove('hidden');
+            typeBtn.classList.remove('hidden');
             w.practiceStep = 'waiting-user';
         };
 
         if (refFile) {
-            // Play human reference audio
             const audio = new Audio(`/api/recording/${refFile}`);
             audio.onended = finishReading;
-            audio.onerror = () => {
-                // Fallback to TTS
-                this.watchPlayTTS(lineData, w.lang).then(finishReading);
-            };
-            audio.play().catch(() => {
-                this.watchPlayTTS(lineData, w.lang).then(finishReading);
-            });
+            audio.onerror = () => { this.watchPlayTTS(lineData, w.lang).then(finishReading); };
+            audio.play().catch(() => { this.watchPlayTTS(lineData, w.lang).then(finishReading); });
         } else {
-            // No reference audio, use TTS
             this.watchPlayTTS(lineData, w.lang).then(finishReading);
         }
-
         w.practiceStep = 'ai-reading';
     },
 
     async watchFollowRead() {
-        // User reads the line, using SpeechRecognition
         const w = this.data.watch;
         const lineData = w.allLines[w.currentLineIdx];
         if (!lineData) return;
 
         const lang = w.lang === 'bilingual' ? 'en' : w.lang;
         const expectedText = lang === 'en' ? lineData.textEn : lineData.textZh;
-
         const followBtn = document.getElementById('watchFollowBtn');
         const nextBtn = document.getElementById('watchNextLineBtn');
         const scoreEl = document.getElementById('watchScoreResult');
-
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
         if (!SpeechRecognition) {
-            // Fallback: text input
-            followBtn.textContent = '🎤 Click to Read / 点击跟读';
-            const userInput = prompt(
-                lang === 'en'
-                    ? `Read this line and type what you said:\n"${expectedText}"`
-                    : `朗读这句话，然后输入你说的内容：\n"${expectedText}"`
-            );
-            if (userInput && userInput.trim()) {
-                try {
-                    const res = await fetch('/api/score', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            play_id: w.play.id,
-                            character_id: w.characterId || lineData.characterId,
-                            lang: lang,
-                            scene_id: lineData.sceneId,
-                            recognized_text: userInput.trim(),
-                            expected_text: expectedText
-                        })
-                    });
-                    const data = await res.json();
-                    this.showWatchScore(data);
-                } catch(e) {
-                    scoreEl.classList.remove('hidden');
-                    scoreEl.innerHTML = '❌ Scoring error / 评分出错';
-                }
-            }
+            scoreEl.classList.remove('hidden');
+            scoreEl.innerHTML = '⚠️ Voice recognition not supported. Use "⌨️ Type to Score" instead. / 浏览器不支持语音识别，请用打字评分按钮。';
+            followBtn.textContent = '🎤 跟读 / Read Again';
+            followBtn.disabled = false;
             nextBtn.classList.remove('hidden');
             return;
         }
 
-        // Use Web Speech API for voice recognition
         w.practiceStep = 'user-reading';
         followBtn.textContent = '🔴 Listening... / 正在听...';
         followBtn.disabled = true;
@@ -772,29 +758,16 @@ const App = {
         recognition.continuous = false;
 
         scoreEl.classList.remove('hidden');
-        scoreEl.innerHTML = '🔴 <span style="color:var(--danger);font-size:1rem">' + (lang === 'en' ? 'Listening... Please read now!' : '正在听...请朗读！') + '</span>';
+        scoreEl.innerHTML = '🎤 <span style="color:var(--primary);font-size:1rem">' + (lang === 'en' ? 'Listening now! Please read the line aloud!' : '正在听！请大声朗读这句话！') + '</span>';
+
+        const recogTimeout = setTimeout(() => {
+            scoreEl.innerHTML = '⚠️ <span style="color:var(--warning);font-size:0.95rem">' + (lang === 'en' ? 'Taking too long? Try "⌨️ Type to Score" instead.' : '等太久？试试"⌨️ 打字评分"按钮。') + '</span>';
+        }, 8000);
 
         recognition.onresult = async (event) => {
+            clearTimeout(recogTimeout);
             const recognized = event.results[0][0].transcript;
-            try {
-                const res = await fetch('/api/score', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        play_id: w.play.id,
-                        character_id: w.characterId || lineData.characterId,
-                        lang: lang,
-                        scene_id: lineData.sceneId,
-                        recognized_text: recognized,
-                        expected_text: expectedText
-                    })
-                });
-                const data = await res.json();
-                this.showWatchScore(data);
-            } catch(e) {
-                scoreEl.classList.remove('hidden');
-                scoreEl.innerHTML = '❌ Scoring error / 评分出错';
-            }
+            await this.watchScoreText(recognized, expectedText, lang, lineData);
             followBtn.textContent = '🎤 跟读 / Read Again';
             followBtn.disabled = false;
             nextBtn.classList.remove('hidden');
@@ -802,25 +775,122 @@ const App = {
         };
 
         recognition.onerror = (event) => {
-            console.error('Speech recognition error:', event.error);
-            scoreEl.classList.remove('hidden');
+            clearTimeout(recogTimeout);
+            let msg = '';
             if (event.error === 'not-allowed') {
-                scoreEl.innerHTML = '❌ Microphone blocked. Please allow microphone access in browser settings. / 麦克风被禁止，请在浏览器设置中允许';
+                msg = '❌ Microphone blocked. Allow microphone in browser settings, or use "⌨️ Type to Score". / 麦克风被禁止，请用打字评分。';
             } else if (event.error === 'no-speech') {
-                scoreEl.innerHTML = '⚠️ No speech detected. Try again. / 没有检测到语音，请再试一次';
+                msg = '⚠️ No speech detected. Try again or use "⌨️ Type to Score". / 没有检测到语音，请用打字评分。';
+            } else if (event.error === 'network') {
+                msg = '⚠️ Network error. Use "⌨️ Type to Score" instead. / 网络错误，请用打字评分。';
+            } else if (event.error === 'aborted') {
+                msg = '⚠️ Recognition interrupted. Try again or use "⌨️ Type to Score". / 识别被中断，请用打字评分。';
             } else {
-                scoreEl.innerHTML = `❌ Recognition error: ${event.error} / 识别出错`;
+                msg = '⚠️ Recognition error. Use "⌨️ Type to Score" instead. / 识别出错，请用打字评分。';
             }
+            scoreEl.classList.remove('hidden');
+            scoreEl.innerHTML = msg;
             followBtn.textContent = '🎤 跟读 / Read Again';
             followBtn.disabled = false;
             nextBtn.classList.remove('hidden');
         };
 
-        recognition.start();
+        try { recognition.start(); } catch(e) {
+            clearTimeout(recogTimeout);
+            scoreEl.classList.remove('hidden');
+            scoreEl.innerHTML = '⚠️ Cannot start voice recognition. Use "⌨️ Type to Score" instead. / 请用打字评分。';
+            followBtn.textContent = '🎤 跟读 / Read Again';
+            followBtn.disabled = false;
+        }
+    },
+
+    async watchTypeRead() {
+        const w = this.data.watch;
+        const lineData = w.allLines[w.currentLineIdx];
+        if (!lineData) return;
+
+        const lang = w.lang === 'bilingual' ? 'en' : w.lang;
+        const expectedText = lang === 'en' ? lineData.textEn : lineData.textZh;
+        const nextBtn = document.getElementById('watchNextLineBtn');
+
+        const userInput = prompt(
+            lang === 'en'
+                ? `Read this line aloud, then type what you said:\n\n"${expectedText}"`
+                : `大声朗读这句话，然后输入你说的内容：\n\n"${expectedText}"`
+        );
+
+        if (userInput && userInput.trim()) {
+            await this.watchScoreText(userInput.trim(), expectedText, lang, lineData);
+            nextBtn.classList.remove('hidden');
+            w.practiceStep = 'scored';
+        }
+    },
+
+    async watchScoreText(recognizedText, expectedText, lang, lineData) {
+        const w = this.data.watch;
+        const scoreEl = document.getElementById('watchScoreResult');
+        scoreEl.classList.remove('hidden');
+        scoreEl.innerHTML = '⏳ Scoring... / 评分中...';
+        try {
+            const res = await fetch('/api/score', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    play_id: w.play.id,
+                    character_id: w.characterId || lineData.characterId,
+                    lang: lang,
+                    scene_id: lineData.sceneId,
+                    recognized_text: recognizedText,
+                    expected_text: expectedText
+                })
+            });
+            const data = await res.json();
+            this.showWatchScore(data);
+        } catch(e) {
+            scoreEl.classList.remove('hidden');
+            scoreEl.innerHTML = '❌ Scoring error / 评分出错';
+        }
+    },
+
+    async uploadRefAudioFromWatch(inputEl, lang) {
+        const w = this.data.watch;
+        const lineData = w.allLines[w.currentLineIdx];
+        if (!lineData) return;
+
+        const file = inputEl.files[0];
+        if (!file) return;
+
+        const hintEl = document.getElementById('watchUploadHint');
+        hintEl.textContent = '⏳ Uploading... / 上传中...';
+
+        const formData = new FormData();
+        formData.append('audio', file);
+        formData.append('play_id', w.play.id);
+        formData.append('character_id', lineData.characterId);
+        formData.append('scene_id', lineData.sceneId);
+        formData.append('line_index', w.currentLineIdx);
+        formData.append('lang', lang);
+        formData.append('player_name', 'Reference');
+        formData.append('is_reference', '1');
+
+        try {
+            const res = await fetch('/api/record', { method: 'POST', body: formData });
+            if (res.ok) {
+                const data = await res.json();
+                const refKey = `${lineData.characterId}|${w.currentLineIdx}|${lang}`;
+                w.refAudio[refKey] = data.filename;
+                hintEl.textContent = '✅ Uploaded! / 已上传！';
+                this.showToast('✅ Reference audio uploaded! / 标准读音已上传！', 'success');
+                inputEl.value = '';
+            } else {
+                hintEl.textContent = '❌ Upload failed / 上传失败';
+            }
+        } catch(e) {
+            hintEl.textContent = '❌ Upload error / 上传出错';
+        }
     },
 
     watchNextAfterPractice() {
-        // Move to next line after practice is done
         const w = this.data.watch;
         document.getElementById('watchScoreResult').classList.add('hidden');
         this.watchNext();

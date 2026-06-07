@@ -1274,3 +1274,32 @@ body {
     opacity: 0.6;
     cursor: not-allowed;
 }
+
+/* Upload reference audio area in watch page */
+.watch-upload-ref {
+    text-align: center;
+    margin: 12px 0;
+    padding: 16px;
+    background: var(--success-light);
+    border-radius: var(--radius);
+    border: 1px dashed var(--success);
+}
+
+.watch-upload-label {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--success);
+    margin-bottom: 10px;
+}
+
+.ref-upload-btn {
+    cursor: pointer;
+    margin: 4px;
+}
+
+.watch-upload-hint {
+    display: block;
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
