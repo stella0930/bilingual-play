@@ -340,20 +340,34 @@ const App = {
                 </div>
                 <div class="char-personality">${personality}</div>`;
 
-            if (char.claimed_by) {
-                html += `<div class="char-claimed">✅ ${lang === 'en' ? 'Claimed by' : '已认领'}: <span class="char-claimed-by">${char.claimed_by}</span></div>
-                         <button class="unclaim-btn" onclick="App.unclaim('${char.claim_id}', ${play.id})">${lang === 'en' ? 'Release' : '释放角色'}</button>
-                         <a class="btn btn-outline btn-sm" style="margin-top:8px" onclick="App.navigate('/practice/${play.id}/${char.id}')">${lang === 'en' ? '📖 Practice' : '📖 练习'}</a>`;
-            } else {
-                if (this.data.user) {
-                    // Logged in: auto-claim with nickname, no input needed
-                    html += `<button class="claim-btn" onclick="App.claim(${play.id},'${char.id}')">${lang === 'en' ? 'Claim as' : '认领为'} ${this.data.user.nickname}</button>`;
-                } else {
-                    html += `<div class="claim-form">
-                        <input class="claim-input" id="claim-${char.id}" placeholder="${lang === 'en' ? 'Your name' : '你的名字'}" onkeydown="if(event.key==='Enter')App.claim(${play.id},'${char.id}')">
-                        <button class="claim-btn" onclick="App.claim(${play.id},'${char.id}')">${lang === 'en' ? 'Claim' : '认领'}</button>
+            // Show claim count and list
+            const claimCount = char.claim_count || 0;
+            const claimList = char.claimed_by_list || [];
+
+            // Claim count badge
+            if (claimCount > 0) {
+                html += `<div class="claim-count-badge">${claimCount} ${lang === 'en' ? (claimCount === 1 ? 'person claimed' : 'people claimed') : '人已认领'}</div>`;
+                html += `<div class="claim-names">${claimList.map(c => `<span class="claim-name-tag">${c.player_name}</span>`).join(' ')}</div>`;
+            }
+
+            // Always show claim button (unless already claimed by this user)
+            const alreadyClaimed = this.data.user && claimList.some(c => c.user_id === this.data.user.id);
+            if (alreadyClaimed) {
+                // Find this user's claim to allow unclaim
+                const myClaim = claimList.find(c => c.user_id === this.data.user.id);
+                if (myClaim) {
+                    html += `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                        <span style="color:var(--success);font-weight:700">✅ ${lang === 'en' ? 'You claimed this role' : '你已认领此角色'}</span>
+                        <button class="unclaim-btn" onclick="App.unclaim('${myClaim.claim_id}', ${play.id})">${lang === 'en' ? 'Release' : '释放'}</button>
                     </div>`;
                 }
+            } else if (this.data.user) {
+                html += `<button class="claim-btn" onclick="App.claim(${play.id},'${char.id}')">${lang === 'en' ? 'Claim as' : '认领为'} ${this.data.user.nickname}</button>`;
+            } else {
+                html += `<div class="claim-form">
+                    <input class="claim-input" id="claim-${char.id}" placeholder="${lang === 'en' ? 'Your name' : '你的名字'}" onkeydown="if(event.key==='Enter')App.claim(${play.id},'${char.id}')">
+                    <button class="claim-btn" onclick="App.claim(${play.id},'${char.id}')">${lang === 'en' ? 'Claim' : '认领'}</button>
+                </div>`;
             }
             html += '</div>';
         }

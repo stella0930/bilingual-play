@@ -354,11 +354,19 @@ def api_play(play_id):
         return jsonify({'error': 'Play not found'}), 404
     db = get_db()
     claims = db.execute('SELECT * FROM role_claims WHERE play_id = ?', (play_id,)).fetchall()
-    claim_map = {c['character_id']: dict(c) for c in claims}
     db.close()
+    # Group claims by character_id
+    from collections import defaultdict
+    claims_by_char = defaultdict(list)
+    for c in claims:
+        claims_by_char[c['character_id']].append(dict(c))
     for char in play['characters']:
-        char['claimed_by'] = claim_map.get(char['id'], {}).get('player_name', None)
-        char['claim_id'] = claim_map.get(char['id'], {}).get('id', None)
+        char_claims = claims_by_char.get(char['id'], [])
+        char['claim_count'] = len(char_claims)
+        char['claimed_by_list'] = [{'claim_id': c['id'], 'player_name': c['player_name'], 'user_id': c.get('user_id')} for c in char_claims]
+        # Keep backward compat
+        char['claimed_by'] = ', '.join(c['player_name'] for c in char_claims) if char_claims else None
+        char['claim_id'] = char_claims[0]['id'] if char_claims else None
     return jsonify(play)
 
 @app.route('/api/claim', methods=['POST'])
@@ -371,15 +379,17 @@ def api_claim():
         return jsonify({'error': 'Player name is required'}), 400
 
     db = get_db()
-    existing = db.execute('SELECT * FROM role_claims WHERE play_id = ? AND character_id = ?',
-                          (play_id, character_id)).fetchone()
-    if existing:
-        db.close()
-        return jsonify({'error': 'This role has already been claimed', 'claimed_by': existing['player_name']}), 409
-
-    claim_id = str(uuid.uuid4())[:8]
+    # Check if this user already claimed this role (prevent duplicates for logged-in users)
     user = current_user()
     user_id = user['id'] if user else None
+    if user_id:
+        existing = db.execute('SELECT * FROM role_claims WHERE play_id = ? AND character_id = ? AND user_id = ?',
+                              (play_id, character_id, user_id)).fetchone()
+        if existing:
+            db.close()
+            return jsonify({'error': 'You already claimed this role / 你已经认领了这个角色'}), 409
+
+    claim_id = str(uuid.uuid4())[:8]
     # If logged in, use nickname as player_name
     if user and not player_name:
         player_name = user['nickname']
