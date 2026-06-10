@@ -1819,28 +1819,36 @@ const App = {
                 html += `
                     <div class="admin-stats">
                         <h3>${play.title_en} / ${play.title_zh}</h3>
+                        <div style="overflow-x:auto">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Role / 角色</th>
+                                    <th>Count / 人数</th>
+                                    <th>Claimed by / 认领人</th>
+                                </tr>
+                            </thead>
+                            <tbody>
                 `;
                 for (const char of play.characters) {
-                    html += `<div style="margin-bottom:12px">
-                        <div style="font-weight:700;margin-bottom:4px">${char.emoji} ${char.character_name_en} (${char.character_name_zh})</div>`;
-                    if (char.claimed_by && char.claimed_by.length > 0) {
-                        for (const claim of char.claimed_by) {
-                            html += `<div class="char-claim-card">
-                                <div class="claim-info">
-                                    <div class="claim-name">${claim.user_nickname || claim.player_name}</div>
-                                    <div class="claim-detail">
-                                        ${claim.user_age ? `Age: ${claim.user_age} / 年龄: ${claim.user_age}` : ''}
-                                        ${claim.user_room ? ` | Room: ${claim.user_room} / 房间: ${claim.user_room}` : ''}
-                                    </div>
-                                </div>
-                            </div>`;
-                        }
-                    } else {
-                        html += `<div class="char-claim-unclaimed">No one yet / 还没有人选</div>`;
-                    }
-                    html += `</div>`;
+                    const count = char.claimed_by && char.claimed_by.length > 0 ? char.claimed_by.length : 0;
+                    const claimList = char.claimed_by && char.claimed_by.length > 0
+                        ? char.claimed_by.map(c => {
+                            let info = `<strong>${c.user_nickname || c.player_name}</strong>`;
+                            const details = [];
+                            if (c.user_age) details.push(`Age ${c.user_age}`);
+                            if (c.user_room) details.push(`Room ${c.user_room}`);
+                            if (details.length) info += ` <span style="color:var(--text-secondary);font-size:0.85rem">(${details.join(', ')})</span>`;
+                            return info;
+                        }).join('<br>')
+                        : '<span style="color:var(--text-secondary);font-style:italic">—</span>';
+                    html += `<tr>
+                        <td>${char.emoji} ${char.character_name_en} <span style="color:var(--text-secondary)">(${char.character_name_zh})</span></td>
+                        <td style="text-align:center;font-weight:700;${count === 0 ? 'color:var(--danger)' : count === 1 ? 'color:var(--warning)' : 'color:var(--success)'}">${count}</td>
+                        <td>${claimList}</td>
+                    </tr>`;
                 }
-                html += `</div>`;
+                html += `</tbody></table></div></div>`;
             }
 
             // User list
