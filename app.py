@@ -509,6 +509,12 @@ def api_record():
     lang = request.form.get('lang', 'en')
     is_reference = int(request.form.get('is_reference', 0))
 
+    # Only admins can upload reference audio
+    if is_reference:
+        user = current_user()
+        if not user or not user['is_admin']:
+            return jsonify({'error': 'Only admins can upload reference audio / 只有管理员才能上传标准读音'}), 403
+
     ext = audio.filename.split('.')[-1] if '.' in audio.filename else 'webm'
     prefix = 'ref' if is_reference else 'rec'
     filename = f"{prefix}_{play_id}_{character_id}_{scene_id}_{lang}_{uuid.uuid4().hex[:6]}.{ext}"

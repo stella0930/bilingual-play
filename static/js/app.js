@@ -587,7 +587,8 @@ const App = {
                     </button>
                 </div>
 
-                <!-- Upload reference audio (visible in practice mode when it's user's turn) -->
+                <!-- Upload reference audio (admin only, visible in practice mode when it's user's turn) -->
+                ${this.data.user && this.data.user.is_admin ? `
                 <div class="watch-upload-ref hidden" id="watchUploadRef">
                     <div class="watch-upload-label">📤 Upload your standard pronunciation / 上传你的标准读音：</div>
                     <label class="btn btn-outline btn-sm ref-upload-btn">
@@ -600,6 +601,7 @@ const App = {
                     </label>
                     <span class="watch-upload-hint" id="watchUploadHint"></span>
                 </div>
+                ` : '<div class="watch-upload-ref hidden" id="watchUploadRef"></div>'}
 
                 <!-- Progress -->
                 <div class="watch-progress">
@@ -708,8 +710,12 @@ const App = {
             document.getElementById('watchTypeBtn').classList.add('hidden');
             document.getElementById('watchNextLineBtn').classList.add('hidden');
             document.getElementById('watchPrompt').classList.remove('hidden');
-            // Show upload reference audio area
-            document.getElementById('watchUploadRef').classList.remove('hidden');
+            // Show upload reference audio area (admin only)
+            if (this.data.user && this.data.user.is_admin) {
+                document.getElementById('watchUploadRef').classList.remove('hidden');
+            } else {
+                document.getElementById('watchUploadRef').classList.add('hidden');
+            }
             w.practiceStep = 'waiting-user';
         } else {
             document.getElementById('watchPracticeActions').classList.add('hidden');
@@ -1464,6 +1470,7 @@ const App = {
                     <div class="score-line-actions">
                         <button class="btn btn-primary btn-sm" onclick="App.practiceLine(${lineIndex}, 'en')">🎤 Practice EN</button>
                         <button class="btn btn-success btn-sm" onclick="App.practiceLine(${lineIndex}, 'zh')">🎤 练习中文</button>
+                        ${this.data.user && this.data.user.is_admin ? `
                         <label class="btn btn-outline btn-sm ref-upload-btn" title="Upload standard pronunciation / 上传标准读音">
                             📤 Upload Ref
                             <input type="file" accept="audio/*" style="display:none" onchange="App.uploadRefAudio(this, ${playId}, '${characterId}', ${lineIndex}, 'en')">
@@ -1472,6 +1479,7 @@ const App = {
                             📤 上传读音
                             <input type="file" accept="audio/*" style="display:none" onchange="App.uploadRefAudio(this, ${playId}, '${characterId}', ${lineIndex}, 'zh')">
                         </label>
+                        ` : ''}
                         <span class="score-result" id="scoreResult_${lineIndex}"></span>
                     </div>
                 </div>`;
