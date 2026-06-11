@@ -440,6 +440,11 @@ const App = {
             name = this.data.user.nickname;
         }
         if (!name) { if (input) input.focus(); return; }
+
+        // Disable button to prevent double-click
+        const btn = event && event.target ? event.target.closest('.claim-btn') : null;
+        if (btn) { btn.disabled = true; btn.textContent = '...'; }
+
         try {
             const res = await fetch('/api/claim', {
                 method: 'POST',

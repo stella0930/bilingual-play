@@ -379,12 +379,19 @@ def api_claim():
         return jsonify({'error': 'Player name is required'}), 400
 
     db = get_db()
-    # Check if this user already claimed this role (prevent duplicates for logged-in users)
+    # Prevent duplicate claims: same person can't claim the same role twice
     user = current_user()
     user_id = user['id'] if user else None
     if user_id:
         existing = db.execute('SELECT * FROM role_claims WHERE play_id = ? AND character_id = ? AND user_id = ?',
                               (play_id, character_id, user_id)).fetchone()
+        if existing:
+            db.close()
+            return jsonify({'error': 'You already claimed this role / 你已经认领了这个角色'}), 409
+    else:
+        # For non-logged-in users, check by player_name
+        existing = db.execute('SELECT * FROM role_claims WHERE play_id = ? AND character_id = ? AND player_name = ?',
+                              (play_id, character_id, player_name)).fetchone()
         if existing:
             db.close()
             return jsonify({'error': 'You already claimed this role / 你已经认领了这个角色'}), 409
