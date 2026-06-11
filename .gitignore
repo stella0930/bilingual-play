@@ -1,0 +1,4 @@
+data/bilingual.db
+__pycache__/
+*.pyc
+static/uploads/
