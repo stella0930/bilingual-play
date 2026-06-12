@@ -860,9 +860,12 @@ const App = {
             w.currentLineIdx++;
             this.watchPlayCurrentLine();
         } else {
+            // End reached — auto reset to beginning
+            w.currentLineIdx = 0;
             w.isPlaying = false;
             document.getElementById('watchPlayBtn').textContent = '▶';
-            this.showToast('🎬 The End! / 剧终！', 'success');
+            this.showWatchCurrentLine();
+            this.showToast('🎬 The End! / 剧终！已回到开头', 'success');
         }
     },
 
