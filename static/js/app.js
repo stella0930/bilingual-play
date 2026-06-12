@@ -1016,7 +1016,17 @@ const App = {
         w._followRecognition = null;
 
         // Start MediaRecorder to save audio for playback
-        const mediaRecorder = new MediaRecorder(stream);
+        // Choose a format compatible with iOS Safari (mp4/aac preferred over webm)
+        let mimeType = 'audio/webm';
+        if (MediaRecorder.isTypeSupported('audio/mp4')) {
+            mimeType = 'audio/mp4';
+        } else if (MediaRecorder.isTypeSupported('audio/aac')) {
+            mimeType = 'audio/aac';
+        } else if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+            mimeType = 'audio/webm;codecs=opus';
+        }
+        const mediaRecorder = new MediaRecorder(stream, { mimeType });
+        w._followMimeType = mimeType;
         w._followMediaRecorder = mediaRecorder;
         mediaRecorder.ondataavailable = (e) => {
             w._followAudioChunks.push(e.data);
@@ -1088,8 +1098,9 @@ const App = {
                         w._followStream.getTracks().forEach(t => t.stop());
                     }
 
-                    // Create audio blob for playback
-                    const blob = new Blob(w._followAudioChunks, { type: 'audio/webm' });
+                    // Create audio blob for playback (use correct MIME type for iOS compatibility)
+                    const blobType = w._followMimeType || 'audio/webm';
+                    const blob = new Blob(w._followAudioChunks, { type: blobType });
                     const url = URL.createObjectURL(blob);
 
                     // Show playback + score area
