@@ -67,6 +67,7 @@ def init_db():
         'ALTER TABLE role_claims ADD COLUMN user_id INTEGER REFERENCES users(id)',
         'ALTER TABLE recordings ADD COLUMN user_id INTEGER REFERENCES users(id)',
         'ALTER TABLE scores ADD COLUMN user_id INTEGER REFERENCES users(id)',
+        'ALTER TABLE recordings ADD COLUMN audio_label TEXT DEFAULT \'\'',
     ]:
         try:
             db.execute(stmt)
@@ -525,6 +526,7 @@ def api_record():
     player_name = request.form.get('player_name', 'Unknown')
     lang = request.form.get('lang', 'en')
     is_reference = int(request.form.get('is_reference', 0))
+    audio_label = request.form.get('audio_label', '').strip()
 
     # Only admins can upload reference audio
     if is_reference:
@@ -545,8 +547,8 @@ def api_record():
     if user and player_name == 'Unknown':
         player_name = user['nickname']
     db = get_db()
-    db.execute('INSERT INTO recordings (id, play_id, character_id, scene_id, line_index, lang, file_path, player_name, is_reference, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-               (rec_id, play_id, character_id, scene_id, line_index, lang, filename, player_name, is_reference, user_id, datetime.now().isoformat()))
+    db.execute('INSERT INTO recordings (id, play_id, character_id, scene_id, line_index, lang, file_path, player_name, is_reference, user_id, audio_label, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+               (rec_id, play_id, character_id, scene_id, line_index, lang, filename, player_name, is_reference, user_id, audio_label, datetime.now().isoformat()))
     db.commit()
     db.close()
     return jsonify({'success': True, 'recording_id': rec_id, 'filename': filename})
@@ -576,12 +578,25 @@ def api_reference_audio(play_id):
     else:
         recs = db.execute('SELECT * FROM recordings WHERE play_id = ? AND is_reference = 1 ORDER BY created_at', (play_id,)).fetchall()
     db.close()
-    # Group by character_id + line_index + lang (take the latest for each)
-    latest = {}
+    # Group by character_id + line_index + lang, then by audio_label
+    grouped = {}
     for r in recs:
         key = f"{r['character_id']}|{r['line_index']}|{r['lang']}"
-        latest[key] = dict(r)
-    return jsonify(list(latest.values()))
+        label = r['audio_label'] or 'default'
+        if key not in grouped:
+            grouped[key] = {}
+        # Take the latest for each label
+        grouped[key][label] = dict(r)
+    return jsonify(grouped)
+
+@app.route('/api/audio-labels/<int:play_id>')
+def api_audio_labels(play_id):
+    """Get all unique audio labels used in a play's reference recordings."""
+    db = get_db()
+    recs = db.execute('SELECT DISTINCT audio_label FROM recordings WHERE play_id = ? AND is_reference = 1 AND audio_label != \'\'', (play_id,)).fetchall()
+    db.close()
+    labels = [r['audio_label'] for r in recs]
+    return jsonify(labels)
 
 @app.route('/api/score', methods=['POST'])
 def api_score():

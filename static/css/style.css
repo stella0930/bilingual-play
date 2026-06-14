@@ -1332,6 +1332,40 @@ body {
     color: var(--text-secondary);
 }
 
+/* ========== Audio Version Selector ========== */
+.watch-version-select {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding: 8px 12px;
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+}
+
+.watch-version-select label {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+}
+
+.watch-version-select select {
+    flex: 1;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 2px solid var(--border);
+    font-size: 0.9rem;
+    font-family: inherit;
+    outline: none;
+    background: var(--bg);
+}
+
+.watch-version-select select:focus {
+    border-color: var(--primary);
+}
+
 /* Recording playback area */
 .watch-playback {
     margin-bottom: 12px;

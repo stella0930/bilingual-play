@@ -490,16 +490,20 @@ const App = {
             const res = await fetch(`/api/play/${playId}`);
             const play = await res.json();
 
-            // Fetch reference audio recordings
+            // Fetch reference audio recordings (grouped by label)
             let refAudio = {};
+            let allLabels = [];
             try {
                 const refRes = await fetch(`/api/reference-audio/${playId}`);
                 const refData = await refRes.json();
-                // Build a lookup: "characterId|lineIndex|lang" -> file_path
-                refData.forEach(r => {
-                    const key = `${r.character_id}|${r.line_index}|${r.lang}`;
-                    refAudio[key] = r.file_path;
-                });
+                // Build a lookup: "characterId|lineIndex|lang" -> { label: file_path }
+                for (const [key, labels] of Object.entries(refData)) {
+                    refAudio[key] = {};
+                    for (const [label, rec] of Object.entries(labels)) {
+                        refAudio[key][label] = rec.file_path;
+                        if (!allLabels.includes(label)) allLabels.push(label);
+                    }
+                }
             } catch(e) { console.warn('Could not load reference audio:', e); }
 
             this.data.watch = {
@@ -511,7 +515,9 @@ const App = {
                 isPlaying: false,
                 isMuted: false,
                 practiceStep: 'idle',  // 'idle' | 'ai-reading' | 'waiting-user' | 'user-reading' | 'scored'
-                refAudio: refAudio     // reference audio lookup
+                refAudio: refAudio,    // reference audio lookup: key -> {label: file_path}
+                allLabels: allLabels,   // all audio labels in this play
+                currentLabel: allLabels[0] || ''  // currently selected label
             };
 
             // Flatten all lines with scene info for easy navigation
@@ -567,6 +573,14 @@ const App = {
                     <button class="lang-btn active" id="wBtnEn" onclick="App.switchWatchLang('en')">🇬🇧 English</button>
                     <button class="lang-btn" id="wBtnZh" onclick="App.switchWatchLang('zh')">🇨🇳 中文</button>
                     <button class="lang-btn" id="wBtnBi" onclick="App.switchWatchLang('bilingual')">🌐 Bilingual / 对照</button>
+                </div>
+
+                <!-- Audio Version Selector -->
+                <div class="watch-version-select" id="watchVersionSelect" style="display:${w.allLabels.length > 0 ? 'flex' : 'none'}">
+                    <label>🎵 Version / 版本：</label>
+                    <select id="watchLabelDropdown" onchange="App.selectWatchLabel(this.value)">
+                        ${w.allLabels.map(l => `<option value="${l}" ${l === w.currentLabel ? 'selected' : ''}>${l}</option>`).join('')}
+                    </select>
                 </div>
 
                 <!-- Current Line Display (big centered) -->
@@ -710,6 +724,23 @@ const App = {
         this.checkPracticeLine();
     },
 
+    selectWatchLabel(label) {
+        this.data.watch.currentLabel = label;
+    },
+
+    renderWatchLabelSelector() {
+        const w = this.data.watch;
+        const container = document.getElementById('watchVersionSelect');
+        const dropdown = document.getElementById('watchLabelDropdown');
+        if (!container || !dropdown) return;
+        if (w.allLabels.length === 0) {
+            container.style.display = 'none';
+            return;
+        }
+        container.style.display = 'flex';
+        dropdown.innerHTML = w.allLabels.map(l => `<option value="${l}" ${l === w.currentLabel ? 'selected' : ''}>${l}</option>`).join('');
+    },
+
     checkPracticeLine() {
         const w = this.data.watch;
         if (w.mode !== 'practice' || !w.characterId) {
@@ -781,10 +812,11 @@ const App = {
         return new Promise((resolve) => {
             const w = this.data.watch;
 
-            // 1. Check if we have a reference audio for this line
+            // 1. Check if we have a reference audio for this line (with current label)
             const lineIndex = w.allLines.indexOf(lineData);
             const refKey = `${lineData.characterId}|${lineIndex}|${lang === 'bilingual' ? 'en' : lang}`;
-            const refFile = w.refAudio[refKey];
+            const refLabels = w.refAudio[refKey];  // {label: file_path}
+            const refFile = refLabels ? (refLabels[w.currentLabel] || Object.values(refLabels)[0]) : null;
 
             if (refFile && !w.isMuted) {
                 // Play reference audio (human recording)
@@ -962,7 +994,8 @@ const App = {
         const lineIndex = w.currentLineIdx;
         const lang = w.lang === 'bilingual' ? 'en' : w.lang;
         const refKey = `${lineData.characterId}|${lineIndex}|${lang}`;
-        const refFile = w.refAudio[refKey];
+        const refLabels = w.refAudio[refKey];
+        const refFile = refLabels ? (refLabels[w.currentLabel] || Object.values(refLabels)[0]) : null;
 
         const finishReading = () => {
             readBtn.disabled = false;
@@ -1206,6 +1239,14 @@ const App = {
         const hintEl = document.getElementById('watchUploadHint');
         hintEl.textContent = '⏳ Uploading... / 上传中...';
 
+        // Ask for audio label
+        const audioLabel = prompt('Enter a label for this recording / 请输入录音标签：\n(e.g. Amy标准版, Tom练习版)', '标准读音');
+        if (!audioLabel || !audioLabel.trim()) {
+            hintEl.textContent = '❌ Label required / 需要标签名';
+            inputEl.value = '';
+            return;
+        }
+
         const formData = new FormData();
         formData.append('audio', file);
         formData.append('play_id', w.play.id);
@@ -1215,13 +1256,21 @@ const App = {
         formData.append('lang', lang);
         formData.append('player_name', 'Reference');
         formData.append('is_reference', '1');
+        formData.append('audio_label', audioLabel.trim());
 
         try {
             const res = await fetch('/api/record', { method: 'POST', body: formData });
             if (res.ok) {
                 const data = await res.json();
                 const refKey = `${lineData.characterId}|${w.currentLineIdx}|${lang}`;
-                w.refAudio[refKey] = data.filename;
+                if (!w.refAudio[refKey]) w.refAudio[refKey] = {};
+                w.refAudio[refKey][audioLabel.trim()] = data.filename;
+                // Update labels list
+                if (!w.allLabels.includes(audioLabel.trim())) {
+                    w.allLabels.push(audioLabel.trim());
+                }
+                w.currentLabel = audioLabel.trim();
+                this.renderWatchLabelSelector();
                 hintEl.textContent = '✅ Uploaded! / 已上传！';
                 this.showToast('✅ Reference audio uploaded! / 标准读音已上传！', 'success');
                 inputEl.value = '';
