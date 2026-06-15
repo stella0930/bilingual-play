@@ -506,6 +506,14 @@ const App = {
                 }
             } catch(e) { console.warn('Could not load reference audio:', e); }
 
+            // Build labels: fixed AI label + server labels + fixed 个性版 label
+            const serverLabels = allLabels; // from server reference audio
+            allLabels = ['🤖 AI朗读'];
+            serverLabels.forEach(l => { if (!allLabels.includes(l)) allLabels.push(l); });
+            if (this.data.user) {
+                allLabels.push('🎤 个性版');
+            }
+
             this.data.watch = {
                 play,
                 lang: 'en',
@@ -516,8 +524,9 @@ const App = {
                 isMuted: false,
                 practiceStep: 'idle',  // 'idle' | 'ai-reading' | 'waiting-user' | 'user-reading' | 'scored'
                 refAudio: refAudio,    // reference audio lookup: key -> {label: file_path}
-                allLabels: allLabels,   // all audio labels in this play
-                currentLabel: allLabels[0] || ''  // currently selected label
+                allLabels: allLabels,   // all audio labels (fixed + server + personal)
+                currentLabel: allLabels[0] || '',  // currently selected label
+                personalAudio: {}      // client-side personal audio: key -> Blob URL
             };
 
             // Flatten all lines with scene info for easy navigation
@@ -575,12 +584,13 @@ const App = {
                     <button class="lang-btn" id="wBtnBi" onclick="App.switchWatchLang('bilingual')">🌐 Bilingual / 对照</button>
                 </div>
 
-                <!-- Audio Version Selector -->
-                <div class="watch-version-select" id="watchVersionSelect" style="display:${w.allLabels.length > 0 ? 'flex' : 'none'}">
+                <!-- Audio Version Selector (always visible when logged in) -->
+                <div class="watch-version-select" id="watchVersionSelect" style="display:${this.data.user ? 'flex' : 'none'}">
                     <label>🎵 Version / 版本：</label>
                     <select id="watchLabelDropdown" onchange="App.selectWatchLabel(this.value)">
                         ${w.allLabels.map(l => `<option value="${l}" ${l === w.currentLabel ? 'selected' : ''}>${l}</option>`).join('')}
                     </select>
+                    <span class="personal-audio-count hidden" id="personalAudioCount"></span>
                 </div>
 
                 <!-- Current Line Display (big centered) -->
@@ -635,6 +645,22 @@ const App = {
                     <span class="watch-upload-hint" id="watchUploadHint"></span>
                 </div>
                 ` : '<div class="watch-upload-ref hidden" id="watchUploadRef"></div>'}
+
+                <!-- Upload personal audio (all logged-in users, stored locally only) -->
+                ${this.data.user ? `
+                <div class="watch-upload-personal hidden" id="watchUploadPersonal">
+                    <div class="watch-upload-label">🎤 Upload your recording / 上传你的个性版录音：<span class="personal-hint">(local only, gone when page closes / 仅存本地，关闭页面即消失)</span></div>
+                    <label class="btn btn-outline btn-sm personal-upload-btn">
+                        🇬🇧 English MP3
+                        <input type="file" accept="audio/*,.mp3,.wav,.webm,.m4a" style="display:none" onchange="App.uploadPersonalAudio(this, 'en')">
+                    </label>
+                    <label class="btn btn-outline btn-sm personal-upload-btn">
+                        🇨🇳 中文 MP3
+                        <input type="file" accept="audio/*,.mp3,.wav,.webm,.m4a" style="display:none" onchange="App.uploadPersonalAudio(this, 'zh')">
+                    </label>
+                    <span class="watch-upload-hint" id="personalUploadHint"></span>
+                </div>
+                ` : '<div class="watch-upload-personal hidden" id="watchUploadPersonal"></div>'}
 
                 <!-- Progress -->
                 <div class="watch-progress">
@@ -726,6 +752,13 @@ const App = {
 
     selectWatchLabel(label) {
         this.data.watch.currentLabel = label;
+        // Show/hide personal upload area based on selected label
+        const personalArea = document.getElementById('watchUploadPersonal');
+        if (personalArea && label === '🎤 个性版') {
+            personalArea.classList.remove('hidden');
+        } else if (personalArea) {
+            personalArea.classList.add('hidden');
+        }
     },
 
     renderWatchLabelSelector() {
@@ -733,12 +766,20 @@ const App = {
         const container = document.getElementById('watchVersionSelect');
         const dropdown = document.getElementById('watchLabelDropdown');
         if (!container || !dropdown) return;
-        if (w.allLabels.length === 0) {
-            container.style.display = 'none';
-            return;
-        }
-        container.style.display = 'flex';
+        // Always show version selector (has fixed labels AI + 个性版)
+        container.style.display = (this.data.user) ? 'flex' : 'none';
         dropdown.innerHTML = w.allLabels.map(l => `<option value="${l}" ${l === w.currentLabel ? 'selected' : ''}>${l}</option>`).join('');
+        // Update personal audio count
+        const countEl = document.getElementById('personalAudioCount');
+        if (countEl) {
+            const count = Object.keys(w.personalAudio).length;
+            if (count > 0) {
+                countEl.textContent = `(${count} lines)`;
+                countEl.classList.remove('hidden');
+            } else {
+                countEl.classList.add('hidden');
+            }
+        }
     },
 
     checkPracticeLine() {
@@ -765,6 +806,13 @@ const App = {
                 document.getElementById('watchUploadRef').classList.remove('hidden');
             } else {
                 document.getElementById('watchUploadRef').classList.add('hidden');
+            }
+            // Show personal audio upload area (if 个性版 is selected)
+            const personalArea = document.getElementById('watchUploadPersonal');
+            if (personalArea && w.currentLabel === '🎤 个性版') {
+                personalArea.classList.remove('hidden');
+            } else if (personalArea) {
+                personalArea.classList.add('hidden');
             }
             w.practiceStep = 'waiting-user';
         } else {
@@ -811,10 +859,40 @@ const App = {
     watchPlayAudio(lineData, lang) {
         return new Promise((resolve) => {
             const w = this.data.watch;
-
-            // 1. Check if we have a reference audio for this line (with current label)
             const lineIndex = w.allLines.indexOf(lineData);
             const refKey = `${lineData.characterId}|${lineIndex}|${lang === 'bilingual' ? 'en' : lang}`;
+
+            // 0. If 个性版 is selected, check personal audio first
+            if (w.currentLabel === '🎤 个性版') {
+                const personalUrl = w.personalAudio[refKey];
+                if (personalUrl && !w.isMuted) {
+                    const audio = new Audio(personalUrl);
+                    audio.onended = () => resolve();
+                    audio.onerror = () => {
+                        // Fallback to TTS if personal audio fails
+                        this.watchPlayTTS(lineData, lang).then(resolve);
+                    };
+                    audio.play().catch(() => {
+                        this.watchPlayTTS(lineData, lang).then(resolve);
+                    });
+                    return;
+                }
+                // No personal audio for this line, fall through to TTS
+            }
+
+            // 1. If AI朗读 is selected, skip reference audio and use TTS directly
+            if (w.currentLabel === '🤖 AI朗读') {
+                if (!w.isMuted && window.speechSynthesis) {
+                    this.watchPlayTTS(lineData, lang).then(resolve);
+                } else {
+                    const textLen = (lang === 'zh' ? lineData.textZh : lineData.textEn).length;
+                    const delay = Math.max(1500, textLen * 120);
+                    setTimeout(resolve, delay);
+                }
+                return;
+            }
+
+            // 2. Check if we have a reference audio for this line (with current label)
             const refLabels = w.refAudio[refKey];  // {label: file_path}
             const refFile = refLabels ? (refLabels[w.currentLabel] || Object.values(refLabels)[0]) : null;
 
@@ -994,8 +1072,6 @@ const App = {
         const lineIndex = w.currentLineIdx;
         const lang = w.lang === 'bilingual' ? 'en' : w.lang;
         const refKey = `${lineData.characterId}|${lineIndex}|${lang}`;
-        const refLabels = w.refAudio[refKey];
-        const refFile = refLabels ? (refLabels[w.currentLabel] || Object.values(refLabels)[0]) : null;
 
         const finishReading = () => {
             readBtn.disabled = false;
@@ -1004,6 +1080,31 @@ const App = {
             typeBtn.classList.remove('hidden');
             w.practiceStep = 'waiting-user';
         };
+
+        // 1. If 个性版 selected, play personal audio
+        if (w.currentLabel === '🎤 个性版') {
+            const personalUrl = w.personalAudio[refKey];
+            if (personalUrl) {
+                const audio = new Audio(personalUrl);
+                audio.onended = finishReading;
+                audio.onerror = () => { this.watchPlayTTS(lineData, w.lang).then(finishReading); };
+                audio.play().catch(() => { this.watchPlayTTS(lineData, w.lang).then(finishReading); });
+                w.practiceStep = 'ai-reading';
+                return;
+            }
+            // No personal audio, fall through to TTS
+        }
+
+        // 2. If AI朗读 selected, use TTS directly
+        if (w.currentLabel === '🤖 AI朗读') {
+            this.watchPlayTTS(lineData, w.lang).then(finishReading);
+            w.practiceStep = 'ai-reading';
+            return;
+        }
+
+        // 3. Check server reference audio
+        const refLabels = w.refAudio[refKey];
+        const refFile = refLabels ? (refLabels[w.currentLabel] || Object.values(refLabels)[0]) : null;
 
         if (refFile) {
             const audio = new Audio(`/api/recording/${refFile}`);
@@ -1282,6 +1383,47 @@ const App = {
         }
     },
 
+    // Upload personal audio — stored in browser only, NOT sent to server
+    // Disappears when the page is closed
+    uploadPersonalAudio(inputEl, lang) {
+        const w = this.data.watch;
+        const lineData = w.allLines[w.currentLineIdx];
+        if (!lineData) return;
+
+        const file = inputEl.files[0];
+        if (!file) return;
+
+        const hintEl = document.getElementById('personalUploadHint');
+        hintEl.textContent = '⏳ Loading... / 加载中...';
+
+        const refKey = `${lineData.characterId}|${w.currentLineIdx}|${lang === 'bilingual' ? 'en' : lang}`;
+
+        // Revoke old Blob URL if exists
+        if (w.personalAudio[refKey]) {
+            URL.revokeObjectURL(w.personalAudio[refKey]);
+        }
+
+        // Create a Blob URL from the file (stays in browser memory only)
+        const blobUrl = URL.createObjectURL(file);
+        w.personalAudio[refKey] = blobUrl;
+
+        // Auto-switch to 个性版
+        w.currentLabel = '🎤 个性版';
+        this.renderWatchLabelSelector();
+
+        // Show personal upload area if in practice mode
+        const personalArea = document.getElementById('watchUploadPersonal');
+        if (personalArea && w.mode === 'practice') {
+            personalArea.classList.remove('hidden');
+        }
+
+        const char = w.play.characters.find(c => c.id === lineData.characterId);
+        const charName = char ? char.name_en : '';
+        hintEl.textContent = `✅ ${charName} ${lang === 'en' ? 'EN' : '中文'} line ${w.currentLineIdx + 1} loaded! / 已加载！`;
+        this.showToast(`🎤 Personal audio loaded! / 个性版已加载！(${Object.keys(w.personalAudio).length} lines)`, 'success');
+        inputEl.value = '';
+    },
+
     watchNextAfterPractice() {
         const w = this.data.watch;
         document.getElementById('watchScoreResult').classList.add('hidden');
@@ -1341,6 +1483,14 @@ const App = {
         const pct = Math.round(((w.currentLineIdx + 1) / total) * 100);
         document.getElementById('watchProgressFill').style.width = pct + '%';
         document.getElementById('watchProgressText').textContent = `${w.currentLineIdx + 1} / ${total}`;
+
+        // Show personal upload area when 个性版 is selected (in watch mode)
+        const personalArea = document.getElementById('watchUploadPersonal');
+        if (personalArea && w.currentLabel === '🎤 个性版' && this.data.user) {
+            personalArea.classList.remove('hidden');
+        } else if (personalArea) {
+            personalArea.classList.add('hidden');
+        }
 
         // Highlight in script nav
         this.highlightWatchCurrentLine();

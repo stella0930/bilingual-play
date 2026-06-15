@@ -1313,6 +1313,37 @@ body {
     border: 1px dashed var(--success);
 }
 
+/* Upload personal audio area in watch page */
+.watch-upload-personal {
+    text-align: center;
+    margin: 12px 0;
+    padding: 16px;
+    background: #EFF6FF;
+    border-radius: var(--radius);
+    border: 1px dashed var(--primary);
+}
+
+.personal-upload-btn {
+    cursor: pointer;
+    margin: 4px;
+    border-color: var(--primary) !important;
+    color: var(--primary) !important;
+}
+
+.personal-hint {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    font-style: italic;
+}
+
+.personal-audio-count {
+    font-size: 0.8rem;
+    color: var(--primary);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
 .watch-upload-label {
     font-size: 0.9rem;
     font-weight: 700;
