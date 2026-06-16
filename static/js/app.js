@@ -551,6 +551,7 @@ const App = {
             });
 
             const totalLines = this.data.watch.allLines.length;
+            const w = this.data.watch;
 
             let html = `
                 <a class="back-link" onclick="App.navigate('/play/${playId}')">← Back / 返回</a>
