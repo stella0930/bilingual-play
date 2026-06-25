@@ -610,6 +610,23 @@ def api_audio_labels(play_id):
     labels = [r['audio_label'] for r in recs]
     return jsonify(labels)
 
+@app.route('/api/cleanup-audio/<int:play_id>', methods=['POST'])
+@admin_required
+def api_cleanup_audio(play_id):
+    """Delete all reference recordings except Amy朗读版 and Tom朗读版."""
+    ALLOWED = ['Amy朗读版', 'Tom朗读版']
+    db = get_db()
+    # Delete recordings not in the allowed list
+    placeholders = ','.join(['?'] * len(ALLOWED))
+    result = db.execute(
+        f'DELETE FROM recordings WHERE play_id = ? AND is_reference = 1 AND audio_label NOT IN ({placeholders})',
+        [play_id] + ALLOWED
+    )
+    deleted = result.rowcount
+    db.commit()
+    db.close()
+    return jsonify({'success': True, 'deleted': deleted})
+
 @app.route('/api/bulk-upload', methods=['POST'])
 @admin_required
 def api_bulk_upload():

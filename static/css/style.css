@@ -1338,18 +1338,15 @@ body {
     flex-wrap: wrap;
 }
 
-.bulk-label-input {
+.bulk-label-select {
     padding: 6px 12px;
     border-radius: 8px;
     border: 2px solid var(--border);
     font-size: 0.9rem;
     font-family: inherit;
     outline: none;
-    min-width: 150px;
-}
-
-.bulk-label-input:focus {
-    border-color: var(--primary);
+    background: var(--bg);
+    min-width: 130px;
 }
 
 .bulk-lang-select {

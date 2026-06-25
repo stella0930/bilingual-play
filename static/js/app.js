@@ -516,10 +516,10 @@ const App = {
                 }
             } catch(e) { console.warn('Could not load reference audio:', e); }
 
-            // Build labels: fixed AI label + server labels
-            const serverLabels = allLabels; // from server reference audio
-            allLabels = ['🤖 AI朗读'];
-            serverLabels.forEach(l => { if (!allLabels.includes(l)) allLabels.push(l); });
+            // Build labels: fixed AI label + only Amy朗读版 and Tom朗读版
+            const ALLOWED_LABELS = ['Amy朗读版', 'Tom朗读版'];
+            const serverLabels = allLabels.filter(l => ALLOWED_LABELS.includes(l));
+            allLabels = ['🤖 AI朗读', ...serverLabels];
 
             this.data.watch = {
                 play,
@@ -603,9 +603,12 @@ const App = {
                 <!-- Bulk upload area (admin only) -->
                 ${this.data.user && this.data.user.is_admin ? `
                 <div class="watch-bulk-upload" id="watchBulkUpload">
-                    <div class="bulk-upload-label">📤 整篇录音上传 / Bulk Upload (AI auto-split)</div>
+                    <div class="bulk-upload-label">📤 标准读音上传 / Standard Pronunciation Upload</div>
                     <div class="bulk-upload-row">
-                        <input type="text" id="bulkLabelInput" class="bulk-label-input" placeholder="版本名称 e.g. 姐姐版本" value="">
+                        <select id="bulkLabelSelect" class="bulk-label-select">
+                            <option value="Amy朗读版">Amy朗读版</option>
+                            <option value="Tom朗读版">Tom朗读版</option>
+                        </select>
                         <select id="bulkLangSelect" class="bulk-lang-select">
                             <option value="en">🇬🇧 English</option>
                             <option value="zh">🇨🇳 中文</option>
@@ -615,7 +618,7 @@ const App = {
                             <input type="file" accept="audio/*,.mp3,.wav,.m4a" style="display:none" onchange="App.bulkUpload(this)">
                         </label>
                     </div>
-                    <span class="bulk-upload-hint" id="bulkUploadHint"></span>
+                    <span class="bulk-upload-hint" id="bulkUploadHint">提示：把整篇台词一次读完，上传后 AI 自动切割匹配每句 / Read all lines in one go, AI auto-splits</span>
                 </div>
                 ` : ''}
 
@@ -656,21 +659,7 @@ const App = {
                     </button>
                 </div>
 
-                <!-- Upload reference audio (admin only, visible in practice mode when it's user's turn) -->
-                ${this.data.user && this.data.user.is_admin ? `
-                <div class="watch-upload-ref hidden" id="watchUploadRef">
-                    <div class="watch-upload-label">📤 Upload your standard pronunciation / 上传你的标准读音：</div>
-                    <label class="btn btn-outline btn-sm ref-upload-btn">
-                        🇬🇧 English MP3
-                        <input type="file" accept="audio/*,.mp3,.wav,.webm,.m4a" style="display:none" onchange="App.uploadRefAudioFromWatch(this, 'en')">
-                    </label>
-                    <label class="btn btn-outline btn-sm ref-upload-btn">
-                        🇨🇳 中文 MP3
-                        <input type="file" accept="audio/*,.mp3,.wav,.webm,.m4a" style="display:none" onchange="App.uploadRefAudioFromWatch(this, 'zh')">
-                    </label>
-                    <span class="watch-upload-hint" id="watchUploadHint"></span>
-                </div>
-                ` : '<div class="watch-upload-ref hidden" id="watchUploadRef"></div>'}
+                <div class="watch-upload-ref hidden" id="watchUploadRef"></div>
 
                 <!-- Progress -->
                 <div class="watch-progress">
@@ -692,6 +681,10 @@ const App = {
             container.innerHTML = html;
             // Show initial state
             this.showWatchCurrentLine();
+            // Auto-cleanup old audio recordings (admin only)
+            if (this.data.user && this.data.user.is_admin) {
+                fetch(`/api/cleanup-audio/${playId}`, { method: 'POST' }).catch(() => {});
+            }
         } catch (e) {
             console.error('Watch page error:', e);
             container.innerHTML = `<div class="empty-state"><div class="emoji">😢</div><p>Failed to load: ${e.message}</p></div>`;
@@ -1381,14 +1374,14 @@ const App = {
         const file = inputEl.files[0];
         if (!file) return;
 
-        const labelInput = document.getElementById('bulkLabelInput');
+        const labelSelect = document.getElementById('bulkLabelSelect');
         const langSelect = document.getElementById('bulkLangSelect');
         const hintEl = document.getElementById('bulkUploadHint');
-        const label = labelInput.value.trim();
+        const label = labelSelect.value;
         const lang = langSelect.value;
 
         if (!label) {
-            hintEl.textContent = '❌ 请输入版本名称 / Please enter a label name';
+            hintEl.textContent = '❌ 请选择版本 / Please select a version';
             inputEl.value = '';
             return;
         }
@@ -1418,7 +1411,6 @@ const App = {
                 this.renderWatchLabelSelector();
                 this.showToast(`✅ ${label} uploaded! ${data.matched_lines} lines matched`, 'success');
                 inputEl.value = '';
-                labelInput.value = '';
             } else {
                 hintEl.textContent = `❌ ${data.error || 'Upload failed / 上传失败'}`;
                 hintEl.style.color = 'var(--danger)';
@@ -1433,24 +1425,24 @@ const App = {
 
     async reloadWatchAudio() {
         const w = this.data.watch;
+        const ALLOWED_LABELS = ['Amy朗读版', 'Tom朗读版'];
         try {
             const refRes = await fetch(`/api/reference-audio/${w.play.id}`);
             const refData = await refRes.json();
             w.refAudio = {};
+            w.bulkAudio = {};
             let labels = ['🤖 AI朗读'];
             for (const [key, labelMap] of Object.entries(refData)) {
-                w.refAudio[key] = {};
                 for (const [label, rec] of Object.entries(labelMap)) {
+                    if (!ALLOWED_LABELS.includes(label)) continue;
                     if (rec.bulk && rec.timestamps) {
-                        // Bulk audio entry
                         if (!w.bulkAudio[label]) {
                             w.bulkAudio[label] = { file_path: rec.file_path, timestamps: {} };
                         }
-                        if (rec.timestamps) {
-                            w.bulkAudio[label].timestamps[rec.line_index] = rec.timestamps;
-                        }
+                        w.bulkAudio[label].timestamps[rec.line_index] = rec.timestamps;
                         if (!labels.includes(label)) labels.push(label);
                     } else {
+                        if (!w.refAudio[key]) w.refAudio[key] = {};
                         w.refAudio[key][label] = rec.file_path;
                         if (!labels.includes(label)) labels.push(label);
                     }
@@ -1730,16 +1722,6 @@ const App = {
                     <div class="score-line-actions">
                         <button class="btn btn-primary btn-sm" onclick="App.practiceLine(${lineIndex}, 'en')">🎤 Practice EN</button>
                         <button class="btn btn-success btn-sm" onclick="App.practiceLine(${lineIndex}, 'zh')">🎤 练习中文</button>
-                        ${this.data.user && this.data.user.is_admin ? `
-                        <label class="btn btn-outline btn-sm ref-upload-btn" title="Upload standard pronunciation / 上传标准读音">
-                            📤 Upload Ref
-                            <input type="file" accept="audio/*" style="display:none" onchange="App.uploadRefAudio(this, ${playId}, '${characterId}', ${lineIndex}, 'en')">
-                        </label>
-                        <label class="btn btn-outline btn-sm ref-upload-btn" title="上传中文标准读音">
-                            📤 上传读音
-                            <input type="file" accept="audio/*" style="display:none" onchange="App.uploadRefAudio(this, ${playId}, '${characterId}', ${lineIndex}, 'zh')">
-                        </label>
-                        ` : ''}
                         <span class="score-result" id="scoreResult_${lineIndex}"></span>
                     </div>
                 </div>`;
