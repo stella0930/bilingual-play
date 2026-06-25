@@ -492,6 +492,7 @@ const App = {
 
             // Fetch reference audio recordings (grouped by label)
             let refAudio = {};
+            let bulkAudio = {};
             let allLabels = [];
             try {
                 const refRes = await fetch(`/api/reference-audio/${playId}`);
@@ -500,19 +501,25 @@ const App = {
                 for (const [key, labels] of Object.entries(refData)) {
                     refAudio[key] = {};
                     for (const [label, rec] of Object.entries(labels)) {
-                        refAudio[key][label] = rec.file_path;
-                        if (!allLabels.includes(label)) allLabels.push(label);
+                        if (rec.bulk && rec.timestamps) {
+                            // Bulk audio entry — store in bulkAudio
+                            if (!bulkAudio[label]) {
+                                bulkAudio[label] = { file_path: rec.file_path, timestamps: {} };
+                            }
+                            bulkAudio[label].timestamps[rec.line_index] = rec.timestamps;
+                            if (!allLabels.includes(label)) allLabels.push(label);
+                        } else {
+                            refAudio[key][label] = rec.file_path;
+                            if (!allLabels.includes(label)) allLabels.push(label);
+                        }
                     }
                 }
             } catch(e) { console.warn('Could not load reference audio:', e); }
 
-            // Build labels: fixed AI label + server labels + fixed 个性版 label
+            // Build labels: fixed AI label + server labels
             const serverLabels = allLabels; // from server reference audio
             allLabels = ['🤖 AI朗读'];
             serverLabels.forEach(l => { if (!allLabels.includes(l)) allLabels.push(l); });
-            if (this.data.user) {
-                allLabels.push('🎤 个性版');
-            }
 
             this.data.watch = {
                 play,
@@ -524,9 +531,9 @@ const App = {
                 isMuted: false,
                 practiceStep: 'idle',  // 'idle' | 'ai-reading' | 'waiting-user' | 'user-reading' | 'scored'
                 refAudio: refAudio,    // reference audio lookup: key -> {label: file_path}
-                allLabels: allLabels,   // all audio labels (fixed + server + personal)
+                allLabels: allLabels,   // all audio labels (fixed AI + server)
                 currentLabel: allLabels[0] || '',  // currently selected label
-                personalAudio: {}      // client-side personal audio: key -> Blob URL
+                bulkAudio: bulkAudio    // bulk audio: label -> {file_path, timestamps: {lineIdx: {start, end}}}
             };
 
             // Flatten all lines with scene info for easy navigation
@@ -585,14 +592,32 @@ const App = {
                     <button class="lang-btn" id="wBtnBi" onclick="App.switchWatchLang('bilingual')">🌐 Bilingual / 对照</button>
                 </div>
 
-                <!-- Audio Version Selector (always visible when logged in) -->
-                <div class="watch-version-select" id="watchVersionSelect" style="display:${this.data.user ? 'flex' : 'none'}">
+                <!-- Audio Version Selector (always visible) -->
+                <div class="watch-version-select" id="watchVersionSelect" style="display:flex">
                     <label>🎵 Version / 版本：</label>
                     <select id="watchLabelDropdown" onchange="App.selectWatchLabel(this.value)">
                         ${w.allLabels.map(l => `<option value="${l}" ${l === w.currentLabel ? 'selected' : ''}>${l}</option>`).join('')}
                     </select>
-                    <span class="personal-audio-count hidden" id="personalAudioCount"></span>
                 </div>
+
+                <!-- Bulk upload area (admin only) -->
+                ${this.data.user && this.data.user.is_admin ? `
+                <div class="watch-bulk-upload" id="watchBulkUpload">
+                    <div class="bulk-upload-label">📤 整篇录音上传 / Bulk Upload (AI auto-split)</div>
+                    <div class="bulk-upload-row">
+                        <input type="text" id="bulkLabelInput" class="bulk-label-input" placeholder="版本名称 e.g. 姐姐版本" value="">
+                        <select id="bulkLangSelect" class="bulk-lang-select">
+                            <option value="en">🇬🇧 English</option>
+                            <option value="zh">🇨🇳 中文</option>
+                        </select>
+                        <label class="btn btn-outline btn-sm bulk-upload-btn">
+                            📁 Choose MP3
+                            <input type="file" accept="audio/*,.mp3,.wav,.m4a" style="display:none" onchange="App.bulkUpload(this)">
+                        </label>
+                    </div>
+                    <span class="bulk-upload-hint" id="bulkUploadHint"></span>
+                </div>
+                ` : ''}
 
                 <!-- Current Line Display (big centered) -->
                 <div class="watch-stage" id="watchStage">
@@ -646,22 +671,6 @@ const App = {
                     <span class="watch-upload-hint" id="watchUploadHint"></span>
                 </div>
                 ` : '<div class="watch-upload-ref hidden" id="watchUploadRef"></div>'}
-
-                <!-- Upload personal audio (all logged-in users, stored locally only) -->
-                ${this.data.user ? `
-                <div class="watch-upload-personal hidden" id="watchUploadPersonal">
-                    <div class="watch-upload-label">🎤 Upload your recording / 上传你的个性版录音：<span class="personal-hint">(local only, gone when page closes / 仅存本地，关闭页面即消失)</span></div>
-                    <label class="btn btn-outline btn-sm personal-upload-btn">
-                        🇬🇧 English MP3
-                        <input type="file" accept="audio/*,.mp3,.wav,.webm,.m4a" style="display:none" onchange="App.uploadPersonalAudio(this, 'en')">
-                    </label>
-                    <label class="btn btn-outline btn-sm personal-upload-btn">
-                        🇨🇳 中文 MP3
-                        <input type="file" accept="audio/*,.mp3,.wav,.webm,.m4a" style="display:none" onchange="App.uploadPersonalAudio(this, 'zh')">
-                    </label>
-                    <span class="watch-upload-hint" id="personalUploadHint"></span>
-                </div>
-                ` : '<div class="watch-upload-personal hidden" id="watchUploadPersonal"></div>'}
 
                 <!-- Progress -->
                 <div class="watch-progress">
@@ -753,13 +762,6 @@ const App = {
 
     selectWatchLabel(label) {
         this.data.watch.currentLabel = label;
-        // Show/hide personal upload area based on selected label
-        const personalArea = document.getElementById('watchUploadPersonal');
-        if (personalArea && label === '🎤 个性版') {
-            personalArea.classList.remove('hidden');
-        } else if (personalArea) {
-            personalArea.classList.add('hidden');
-        }
     },
 
     renderWatchLabelSelector() {
@@ -767,20 +769,8 @@ const App = {
         const container = document.getElementById('watchVersionSelect');
         const dropdown = document.getElementById('watchLabelDropdown');
         if (!container || !dropdown) return;
-        // Always show version selector (has fixed labels AI + 个性版)
-        container.style.display = (this.data.user) ? 'flex' : 'none';
+        container.style.display = 'flex';
         dropdown.innerHTML = w.allLabels.map(l => `<option value="${l}" ${l === w.currentLabel ? 'selected' : ''}>${l}</option>`).join('');
-        // Update personal audio count
-        const countEl = document.getElementById('personalAudioCount');
-        if (countEl) {
-            const count = Object.keys(w.personalAudio).length;
-            if (count > 0) {
-                countEl.textContent = `(${count} lines)`;
-                countEl.classList.remove('hidden');
-            } else {
-                countEl.classList.add('hidden');
-            }
-        }
     },
 
     checkPracticeLine() {
@@ -807,13 +797,6 @@ const App = {
                 document.getElementById('watchUploadRef').classList.remove('hidden');
             } else {
                 document.getElementById('watchUploadRef').classList.add('hidden');
-            }
-            // Show personal audio upload area (if 个性版 is selected)
-            const personalArea = document.getElementById('watchUploadPersonal');
-            if (personalArea && w.currentLabel === '🎤 个性版') {
-                personalArea.classList.remove('hidden');
-            } else if (personalArea) {
-                personalArea.classList.add('hidden');
             }
             w.practiceStep = 'waiting-user';
         } else {
@@ -863,25 +846,7 @@ const App = {
             const lineIndex = w.allLines.indexOf(lineData);
             const refKey = `${lineData.characterId}|${lineIndex}|${lang === 'bilingual' ? 'en' : lang}`;
 
-            // 0. If 个性版 is selected, check personal audio first
-            if (w.currentLabel === '🎤 个性版') {
-                const personalUrl = w.personalAudio[refKey];
-                if (personalUrl && !w.isMuted) {
-                    const audio = new Audio(personalUrl);
-                    audio.onended = () => resolve();
-                    audio.onerror = () => {
-                        // Fallback to TTS if personal audio fails
-                        this.watchPlayTTS(lineData, lang).then(resolve);
-                    };
-                    audio.play().catch(() => {
-                        this.watchPlayTTS(lineData, lang).then(resolve);
-                    });
-                    return;
-                }
-                // No personal audio for this line, fall through to TTS
-            }
-
-            // 1. If AI朗读 is selected, skip reference audio and use TTS directly
+            // 0. If AI朗读 is selected, skip reference audio and use TTS directly
             if (w.currentLabel === '🤖 AI朗读') {
                 if (!w.isMuted && window.speechSynthesis) {
                     this.watchPlayTTS(lineData, lang).then(resolve);
@@ -890,6 +855,26 @@ const App = {
                     const delay = Math.max(1500, textLen * 120);
                     setTimeout(resolve, delay);
                 }
+                return;
+            }
+
+            // 1. Check bulk audio (full recording with timestamps)
+            const bulk = w.bulkAudio[w.currentLabel];
+            if (bulk && bulk.timestamps[lineIndex] && !w.isMuted) {
+                const ts = bulk.timestamps[lineIndex];
+                const audio = new Audio(`/api/recording/${bulk.file_path}`);
+                audio.currentTime = ts.start;
+                audio.onended = () => resolve();
+                audio.onerror = () => { this.watchPlayTTS(lineData, lang).then(resolve); };
+                audio.play().catch(() => { this.watchPlayTTS(lineData, lang).then(resolve); });
+                // Stop at end time
+                const checkEnd = setInterval(() => {
+                    if (audio.currentTime >= ts.end) {
+                        audio.pause();
+                        clearInterval(checkEnd);
+                        resolve();
+                    }
+                }, 100);
                 return;
             }
 
@@ -1082,23 +1067,29 @@ const App = {
             w.practiceStep = 'waiting-user';
         };
 
-        // 1. If 个性版 selected, play personal audio
-        if (w.currentLabel === '🎤 个性版') {
-            const personalUrl = w.personalAudio[refKey];
-            if (personalUrl) {
-                const audio = new Audio(personalUrl);
-                audio.onended = finishReading;
-                audio.onerror = () => { this.watchPlayTTS(lineData, w.lang).then(finishReading); };
-                audio.play().catch(() => { this.watchPlayTTS(lineData, w.lang).then(finishReading); });
-                w.practiceStep = 'ai-reading';
-                return;
-            }
-            // No personal audio, fall through to TTS
-        }
-
-        // 2. If AI朗读 selected, use TTS directly
+        // 1. If AI朗读 selected, use TTS directly
         if (w.currentLabel === '🤖 AI朗读') {
             this.watchPlayTTS(lineData, w.lang).then(finishReading);
+            w.practiceStep = 'ai-reading';
+            return;
+        }
+
+        // 2. Check bulk audio (full recording with timestamps)
+        const bulk = w.bulkAudio[w.currentLabel];
+        if (bulk && bulk.timestamps[lineIndex]) {
+            const ts = bulk.timestamps[lineIndex];
+            const audio = new Audio(`/api/recording/${bulk.file_path}`);
+            audio.currentTime = ts.start;
+            audio.onended = finishReading;
+            audio.onerror = () => { this.watchPlayTTS(lineData, w.lang).then(finishReading); };
+            audio.play().catch(() => { this.watchPlayTTS(lineData, w.lang).then(finishReading); });
+            const checkEnd = setInterval(() => {
+                if (audio.currentTime >= ts.end) {
+                    audio.pause();
+                    clearInterval(checkEnd);
+                    finishReading();
+                }
+            }, 100);
             w.practiceStep = 'ai-reading';
             return;
         }
@@ -1384,45 +1375,89 @@ const App = {
         }
     },
 
-    // Upload personal audio — stored in browser only, NOT sent to server
-    // Disappears when the page is closed
-    uploadPersonalAudio(inputEl, lang) {
+    // Bulk upload: upload full audio, AI splits it into lines
+    async bulkUpload(inputEl) {
         const w = this.data.watch;
-        const lineData = w.allLines[w.currentLineIdx];
-        if (!lineData) return;
-
         const file = inputEl.files[0];
         if (!file) return;
 
-        const hintEl = document.getElementById('personalUploadHint');
-        hintEl.textContent = '⏳ Loading... / 加载中...';
+        const labelInput = document.getElementById('bulkLabelInput');
+        const langSelect = document.getElementById('bulkLangSelect');
+        const hintEl = document.getElementById('bulkUploadHint');
+        const label = labelInput.value.trim();
+        const lang = langSelect.value;
 
-        const refKey = `${lineData.characterId}|${w.currentLineIdx}|${lang === 'bilingual' ? 'en' : lang}`;
-
-        // Revoke old Blob URL if exists
-        if (w.personalAudio[refKey]) {
-            URL.revokeObjectURL(w.personalAudio[refKey]);
+        if (!label) {
+            hintEl.textContent = '❌ 请输入版本名称 / Please enter a label name';
+            inputEl.value = '';
+            return;
         }
 
-        // Create a Blob URL from the file (stays in browser memory only)
-        const blobUrl = URL.createObjectURL(file);
-        w.personalAudio[refKey] = blobUrl;
+        hintEl.textContent = '⏳ AI 正在识别和切割音频，请稍等... / AI processing audio, please wait...';
+        hintEl.style.color = 'var(--primary)';
 
-        // Auto-switch to 个性版
-        w.currentLabel = '🎤 个性版';
-        this.renderWatchLabelSelector();
+        const formData = new FormData();
+        formData.append('audio', file);
+        formData.append('play_id', w.play.id);
+        formData.append('label', label);
+        formData.append('lang', lang);
 
-        // Show personal upload area if in practice mode
-        const personalArea = document.getElementById('watchUploadPersonal');
-        if (personalArea && w.mode === 'practice') {
-            personalArea.classList.remove('hidden');
+        try {
+            const res = await fetch('/api/bulk-upload', { method: 'POST', body: formData });
+            const data = await res.json();
+            if (res.ok) {
+                hintEl.textContent = `✅ 成功！${data.matched_lines}/${data.total_lines} 句匹配成功 / ${data.matched_lines}/${data.total_lines} lines matched`;
+                hintEl.style.color = 'var(--success)';
+                // Reload reference audio data
+                await this.reloadWatchAudio();
+                // Add label and switch to it
+                if (!w.allLabels.includes(label)) {
+                    w.allLabels.push(label);
+                }
+                w.currentLabel = label;
+                this.renderWatchLabelSelector();
+                this.showToast(`✅ ${label} uploaded! ${data.matched_lines} lines matched`, 'success');
+                inputEl.value = '';
+                labelInput.value = '';
+            } else {
+                hintEl.textContent = `❌ ${data.error || 'Upload failed / 上传失败'}`;
+                hintEl.style.color = 'var(--danger)';
+                inputEl.value = '';
+            }
+        } catch(e) {
+            hintEl.textContent = '❌ Upload error / 上传出错';
+            hintEl.style.color = 'var(--danger)';
+            inputEl.value = '';
         }
+    },
 
-        const char = w.play.characters.find(c => c.id === lineData.characterId);
-        const charName = char ? char.name_en : '';
-        hintEl.textContent = `✅ ${charName} ${lang === 'en' ? 'EN' : '中文'} line ${w.currentLineIdx + 1} loaded! / 已加载！`;
-        this.showToast(`🎤 Personal audio loaded! / 个性版已加载！(${Object.keys(w.personalAudio).length} lines)`, 'success');
-        inputEl.value = '';
+    async reloadWatchAudio() {
+        const w = this.data.watch;
+        try {
+            const refRes = await fetch(`/api/reference-audio/${w.play.id}`);
+            const refData = await refRes.json();
+            w.refAudio = {};
+            let labels = ['🤖 AI朗读'];
+            for (const [key, labelMap] of Object.entries(refData)) {
+                w.refAudio[key] = {};
+                for (const [label, rec] of Object.entries(labelMap)) {
+                    if (rec.bulk && rec.timestamps) {
+                        // Bulk audio entry
+                        if (!w.bulkAudio[label]) {
+                            w.bulkAudio[label] = { file_path: rec.file_path, timestamps: {} };
+                        }
+                        if (rec.timestamps) {
+                            w.bulkAudio[label].timestamps[rec.line_index] = rec.timestamps;
+                        }
+                        if (!labels.includes(label)) labels.push(label);
+                    } else {
+                        w.refAudio[key][label] = rec.file_path;
+                        if (!labels.includes(label)) labels.push(label);
+                    }
+                }
+            }
+            w.allLabels = labels;
+        } catch(e) { console.warn('Could not reload audio:', e); }
     },
 
     watchNextAfterPractice() {
@@ -1484,14 +1519,6 @@ const App = {
         const pct = Math.round(((w.currentLineIdx + 1) / total) * 100);
         document.getElementById('watchProgressFill').style.width = pct + '%';
         document.getElementById('watchProgressText').textContent = `${w.currentLineIdx + 1} / ${total}`;
-
-        // Show personal upload area when 个性版 is selected (in watch mode)
-        const personalArea = document.getElementById('watchUploadPersonal');
-        if (personalArea && w.currentLabel === '🎤 个性版' && this.data.user) {
-            personalArea.classList.remove('hidden');
-        } else if (personalArea) {
-            personalArea.classList.add('hidden');
-        }
 
         // Highlight in script nav
         this.highlightWatchCurrentLine();

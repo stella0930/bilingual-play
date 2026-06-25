@@ -68,6 +68,8 @@ def init_db():
         'ALTER TABLE recordings ADD COLUMN user_id INTEGER REFERENCES users(id)',
         'ALTER TABLE scores ADD COLUMN user_id INTEGER REFERENCES users(id)',
         'ALTER TABLE recordings ADD COLUMN audio_label TEXT DEFAULT \'\'',
+        'ALTER TABLE recordings ADD COLUMN is_bulk INTEGER DEFAULT 0',
+        'ALTER TABLE recordings ADD COLUMN timestamps_json TEXT DEFAULT \'\'',
     ]:
         try:
             db.execute(stmt)
@@ -585,8 +587,18 @@ def api_reference_audio(play_id):
         label = r['audio_label'] or 'default'
         if key not in grouped:
             grouped[key] = {}
+        rec_dict = dict(r)
+        # Include bulk audio info
+        if rec_dict.get('is_bulk') and rec_dict.get('timestamps_json'):
+            import json as json_mod
+            try:
+                rec_dict['bulk'] = True
+                rec_dict['timestamps'] = json_mod.loads(rec_dict['timestamps_json'])
+                rec_dict['line_index'] = r['line_index']
+            except:
+                pass
         # Take the latest for each label
-        grouped[key][label] = dict(r)
+        grouped[key][label] = rec_dict
     return jsonify(grouped)
 
 @app.route('/api/audio-labels/<int:play_id>')
@@ -597,6 +609,164 @@ def api_audio_labels(play_id):
     db.close()
     labels = [r['audio_label'] for r in recs]
     return jsonify(labels)
+
+@app.route('/api/bulk-upload', methods=['POST'])
+@admin_required
+def api_bulk_upload():
+    """Upload a full audio recording, use Whisper API to transcribe and split into lines."""
+    import requests as req_lib
+
+    if 'audio' not in request.files:
+        return jsonify({'error': 'No audio file / 没有音频文件'}), 400
+
+    audio = request.files['audio']
+    play_id = int(request.form.get('play_id'))
+    label = request.form.get('label', '').strip()
+    lang = request.form.get('lang', 'en')
+
+    if not label:
+        return jsonify({'error': 'Label required / 需要版本名称'}), 400
+
+    # Get OpenAI API key
+    api_key = os.environ.get('OPENAI_API_KEY', '')
+    if not api_key:
+        return jsonify({'error': 'OPENAI_API_KEY not set on server / 服务器未设置 OpenAI API Key，请联系管理员'}), 500
+
+    # Save the audio file
+    ext = audio.filename.split('.')[-1] if '.' in audio.filename else 'mp3'
+    filename = f"bulk_{play_id}_{label}_{lang}_{uuid.uuid4().hex[:6]}.{ext}"
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    audio.save(filepath)
+
+    # Get all script lines for this play (in order)
+    play = get_play(play_id)
+    all_lines = []
+    for scene in play['scenes']:
+        for line in scene['lines']:
+            text = line['text_en'] if lang == 'en' else line['text_zh']
+            all_lines.append({
+                'character_id': line['character_id'],
+                'scene_id': scene['id'],
+                'text': text
+            })
+
+    total_lines = len(all_lines)
+
+    # Call Whisper API for transcription with timestamps
+    try:
+        with open(filepath, 'rb') as f:
+            files = {'file': (filename, f, 'audio/mpeg')}
+            data = {
+                'model': 'whisper-1',
+                'response_format': 'verbose_json',
+                'timestamp_granularities[]': 'word',
+            }
+            if lang == 'zh':
+                data['language'] = 'zh'
+            else:
+                data['language'] = 'en'
+
+            headers = {'Authorization': f'Bearer {api_key}'}
+            resp = req_lib.post(
+                'https://api.openai.com/v1/audio/transcriptions',
+                files=files, data=data, headers=headers, timeout=120
+            )
+    except Exception as e:
+        return jsonify({'error': f'Whisper API request failed: {str(e)}'}), 500
+
+    if resp.status_code != 200:
+        return jsonify({'error': f'Whisper API error: {resp.text}'}), 500
+
+    result = resp.json()
+    words = result.get('words', [])
+
+    if not words:
+        return jsonify({'error': 'No words detected in audio / 音频中未检测到语音'}), 400
+
+    # Match each script line to word timestamps using text similarity
+    # Build a continuous word list with cumulative text for matching
+    word_texts = [w['word'].strip().lower().strip('.,!?;:"\'') for w in words]
+    word_starts = [w['start'] for w in words]
+    word_ends = [w['end'] for w in words]
+
+    # For each script line, find the best matching word range
+    timestamps = {}
+    search_start = 0  # monotonic forward search (lines are in order)
+
+    for line_idx, line_info in enumerate(all_lines):
+        line_text = line_info['text'].lower().strip()
+        # Normalize: remove punctuation for matching
+        import re
+        line_clean = re.sub(r'[^\w\s]', '', line_text).split()
+        if not line_clean:
+            continue
+
+        best_score = 0
+        best_start_idx = search_start
+        best_end_idx = search_start
+
+        # Search forward from current position
+        for start_w in range(search_start, min(search_start + 80, len(word_texts))):
+            # Try matching N words starting from start_w
+            matched_count = 0
+            for i, target_word in enumerate(line_clean):
+                if start_w + i >= len(word_texts):
+                    break
+                # Fuzzy match: check if target_word is contained in word or vice versa
+                wt = word_texts[start_w + i]
+                if target_word in wt or wt in target_word or difflib.SequenceMatcher(None, target_word, wt).ratio() > 0.7:
+                    matched_count += 1
+                else:
+                    break
+
+            score = matched_count / len(line_clean) if line_clean else 0
+            if score > best_score:
+                best_score = score
+                best_start_idx = start_w
+                best_end_idx = min(start_w + len(line_clean) - 1, len(word_texts) - 1)
+
+        # If good match found, record timestamps
+        if best_score > 0.3:
+            timestamps[line_idx] = {
+                'start': word_starts[best_start_idx],
+                'end': word_ends[best_end_idx]
+            }
+            # Move search forward
+            search_start = best_end_idx + 1
+
+    matched_lines = len(timestamps)
+
+    # Store as a single bulk recording entry
+    rec_id = str(uuid.uuid4())[:8]
+    user = current_user()
+    db = get_db()
+
+    # Delete old bulk recordings with same play_id + label + lang
+    db.execute('DELETE FROM recordings WHERE play_id = ? AND audio_label = ? AND lang = ? AND is_bulk = 1',
+               (play_id, label, lang))
+
+    # Insert one entry per matched line (so reference-audio API can serve them)
+    import json as json_mod
+    ts_json = json_mod.dumps(timestamps)
+    for line_idx, ts in timestamps.items():
+        line_info = all_lines[line_idx]
+        line_rec_id = str(uuid.uuid4())[:8]
+        db.execute(
+            'INSERT INTO recordings (id, play_id, character_id, scene_id, line_index, lang, file_path, player_name, is_reference, user_id, audio_label, is_bulk, timestamps_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            (line_rec_id, play_id, line_info['character_id'], line_info['scene_id'], line_idx, lang, filename, label, 1, user['id'], label, 1, json_mod.dumps(ts), datetime.now().isoformat())
+        )
+
+    db.commit()
+    db.close()
+
+    return jsonify({
+        'success': True,
+        'label': label,
+        'lang': lang,
+        'matched_lines': matched_lines,
+        'total_lines': total_lines,
+        'filename': filename
+    })
 
 @app.route('/api/score', methods=['POST'])
 def api_score():

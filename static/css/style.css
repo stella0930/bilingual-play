@@ -1313,8 +1313,8 @@ body {
     border: 1px dashed var(--success);
 }
 
-/* Upload personal audio area in watch page */
-.watch-upload-personal {
+/* Bulk upload area */
+.watch-bulk-upload {
     text-align: center;
     margin: 12px 0;
     padding: 16px;
@@ -1323,25 +1323,54 @@ body {
     border: 1px dashed var(--primary);
 }
 
-.personal-upload-btn {
-    cursor: pointer;
-    margin: 4px;
-    border-color: var(--primary) !important;
-    color: var(--primary) !important;
-}
-
-.personal-hint {
-    font-size: 0.75rem;
-    color: var(--text-secondary);
-    font-weight: 500;
-    font-style: italic;
-}
-
-.personal-audio-count {
-    font-size: 0.8rem;
+.bulk-upload-label {
+    font-size: 0.9rem;
+    font-weight: 700;
     color: var(--primary);
-    font-weight: 600;
-    white-space: nowrap;
+    margin-bottom: 10px;
+}
+
+.bulk-upload-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.bulk-label-input {
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 2px solid var(--border);
+    font-size: 0.9rem;
+    font-family: inherit;
+    outline: none;
+    min-width: 150px;
+}
+
+.bulk-label-input:focus {
+    border-color: var(--primary);
+}
+
+.bulk-lang-select {
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 2px solid var(--border);
+    font-size: 0.9rem;
+    font-family: inherit;
+    outline: none;
+    background: var(--bg);
+}
+
+.bulk-upload-btn {
+    cursor: pointer;
+}
+
+.bulk-upload-hint {
+    display: block;
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
 }
 
 .watch-upload-label {
