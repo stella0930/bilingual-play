@@ -14,6 +14,13 @@ if project_dir not in sys.path:
 os.environ.setdefault('SECRET_KEY', 'bilingual-playhouse-prod-2026-stella')
 os.environ.setdefault('ADMIN_SETUP_KEY', 'playhouse2026')
 
+# Read OpenAI API key from a separate file (not in git)
+try:
+    with open('/home/Stella0930/.openai_key', 'r') as f:
+        os.environ['OPENAI_API_KEY'] = f.read().strip()
+except:
+    pass
+
 # Set the Flask app
 from app import app as application
 
