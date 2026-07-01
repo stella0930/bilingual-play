@@ -69,78 +69,136 @@ body {
 }
 
 /* ========== Home Page ========== */
+.home-hero {
+    text-align: center;
+    padding: 40px 20px 32px;
+}
+
 .page-title {
-    font-size: 1.8rem;
+    font-size: 2.4rem;
     font-weight: 800;
-    margin-bottom: 4px;
+    margin-bottom: 8px;
     color: var(--text);
+    letter-spacing: -0.02em;
 }
 
 .page-subtitle {
-    font-size: 1rem;
+    font-size: 1.05rem;
     color: var(--text-secondary);
-    margin-bottom: 24px;
+    max-width: 520px;
+    margin: 0 auto 40px;
+    line-height: 1.6;
 }
 
+/* ── Apple-style 4-column card grid ── */
 .play-cards {
     display: grid;
-    gap: 16px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
 .play-card {
     background: var(--card-bg);
-    border-radius: var(--radius-lg);
-    padding: 24px;
-    box-shadow: var(--shadow);
-    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+    border: none;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     text-decoration: none;
     color: inherit;
-    display: block;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+}
+
+.play-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 20px;
+    opacity: 0;
+    box-shadow: 0 20px 40px -12px rgba(0,0,0,0.18), 0 4px 12px rgba(0,0,0,0.08);
+    transition: opacity 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    pointer-events: none;
 }
 
 .play-card:hover {
-    box-shadow: var(--shadow-lg);
-    transform: translateY(-2px);
-    border-color: var(--primary);
+    transform: translateY(-6px) scale(1.02);
+    border-color: transparent;
+    box-shadow: none;
 }
 
-.play-card-header {
+.play-card:hover::after {
+    opacity: 1;
+}
+
+/* Card top: big emoji area */
+.play-card-cover {
     display: flex;
     align-items: center;
-    gap: 16px;
-    margin-bottom: 12px;
+    justify-content: center;
+    padding: 36px 16px 24px;
+    background: linear-gradient(135deg, var(--primary-light) 0%, #F5F3FF 50%, #EDE9FE 100%);
+    position: relative;
 }
 
 .play-card-emoji {
-    font-size: 3rem;
+    font-size: 3.8rem;
     line-height: 1;
+    filter: drop-shadow(0 4px 8px rgba(99,102,241,0.15));
+    transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.play-card:hover .play-card-emoji {
+    transform: scale(1.12);
+}
+
+/* Card body: title + meta */
+.play-card-body {
+    padding: 20px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 .play-card-title {
-    font-size: 1.3rem;
+    font-size: 1.15rem;
     font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+    line-height: 1.3;
 }
 
 .play-card-title-zh {
-    font-size: 1rem;
-    color: var(--text-secondary);
-    font-weight: 500;
-}
-
-.play-card-desc {
     font-size: 0.9rem;
     color: var(--text-secondary);
-    margin-bottom: 16px;
-    line-height: 1.5;
+    font-weight: 500;
+    margin-bottom: 12px;
 }
 
 .play-card-meta {
     display: flex;
-    gap: 12px;
+    gap: 8px;
     flex-wrap: wrap;
+    margin-top: auto;
 }
+
+.meta-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: var(--primary-light);
+    color: var(--primary);
+    white-space: nowrap;
+}
+
+.badge-scenes { background: #EEF2FF; color: #6366F1; }
+.badge-chars { background: #FEF3C7; color: #D97706; }
 
 .meta-badge {
     font-size: 0.8rem;
@@ -883,11 +941,40 @@ body {
 }
 
 /* ========== Responsive ========== */
+@media (max-width: 1024px) {
+    .play-cards {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .play-cards {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 14px;
+    }
+    .page-title { font-size: 1.8rem; }
+    .home-hero { padding: 24px 12px 20px; }
+    .play-card-cover { padding: 28px 12px 20px; }
+    .play-card-emoji { font-size: 3rem; }
+    .play-card-body { padding: 14px; }
+    .play-card-title { font-size: 1rem; }
+}
+
 @media (max-width: 640px) {
     .navbar { padding: 10px 16px; }
     .container { padding: 16px 12px; }
     .page-title { font-size: 1.4rem; }
-    .play-card { padding: 16px; }
+    .play-cards {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+    .play-card { padding: 0; }
+    .play-card-cover { padding: 22px 10px 16px; }
+    .play-card-emoji { font-size: 2.5rem; }
+    .play-card-body { padding: 12px; }
+    .play-card-title { font-size: 0.9rem; }
+    .play-card-title-zh { font-size: 0.78rem; }
+    .meta-badge { font-size: 0.68rem; padding: 3px 7px; }
     .characters-grid { grid-template-columns: 1fr; }
     .line-row { flex-direction: column; gap: 2px; }
     .line-char { min-width: unset; }

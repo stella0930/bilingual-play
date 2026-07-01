@@ -254,8 +254,10 @@ const App = {
             const res = await fetch('/api/plays');
             const plays = await res.json();
             let html = `
-                <h1 class="page-title">🎭 Bilingual Playhouse</h1>
-                <p class="page-subtitle">Choose a story and start your bilingual adventure! 选择一个故事，开始你的双语冒险！</p>
+                <div class="home-hero">
+                    <h1 class="page-title">🎭 Bilingual Playhouse</h1>
+                    <p class="page-subtitle">Choose a story and start your bilingual adventure!<br>选择一个故事，开始你的双语冒险！</p>
+                </div>
                 <div class="play-cards">
             `;
             for (const play of plays) {
@@ -263,17 +265,16 @@ const App = {
                 const sceneCount = play.scenes.length - 1;
                 html += `
                     <div class="play-card" onclick="App.navigate('/play/${play.id}')">
-                        <div class="play-card-header">
+                        <div class="play-card-cover">
                             <span class="play-card-emoji">${play.cover_emoji}</span>
-                            <div>
-                                <div class="play-card-title">${play.title_en}</div>
-                                <div class="play-card-title-zh">${play.title_zh}</div>
-                            </div>
                         </div>
-                        <div class="play-card-desc">${play.description_en}<br><span style="color:var(--text-secondary)">${play.description_zh}</span></div>
-                        <div class="play-card-meta">
-                            <span class="meta-badge badge-scenes">${sceneCount} Scenes / 场景</span>
-                            <span class="meta-badge badge-chars">${charCount} Characters / 角色</span>
+                        <div class="play-card-body">
+                            <div class="play-card-title">${play.title_en}</div>
+                            <div class="play-card-title-zh">${play.title_zh}</div>
+                            <div class="play-card-meta">
+                                <span class="meta-badge badge-scenes">🎬 ${sceneCount} 场景</span>
+                                <span class="meta-badge badge-chars">👥 ${charCount} 角色</span>
+                            </div>
                         </div>
                     </div>
                 `;
