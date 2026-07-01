@@ -169,5 +169,235 @@
         ]
       }
     ]
+  },
+  {
+    "id": 2,
+    "title_en": "The Secret Garden",
+    "title_zh": "秘密花园",
+    "cover_emoji": "🌹",
+    "description_en": "A mysterious key under an old oak tree leads Amy and Tom to a frozen secret garden — and three impossible tasks! Can two ordinary kids break a witch's curse before midnight? A story about kindness, courage, and the magic in every child's heart.",
+    "description_zh": "一把藏在老橡树下的神秘钥匙，带艾米和汤姆走进了一座冰封的秘密花园，还有三项不可能完成的任务！两个普通的孩子，能在午夜前破除女巫的诅咒吗？一个关于善意、勇气和每个孩子心中魔法的故事。",
+    "characters": [
+      {
+        "id": "narrator",
+        "name_en": "Narrator",
+        "name_zh": "旁白",
+        "personality_en": "Warm, storytelling",
+        "personality_zh": "温和，讲故事的感觉",
+        "color": "#8B5CF6",
+        "emoji": "📖"
+      },
+      {
+        "id": "amy",
+        "name_en": "Amy",
+        "name_zh": "艾米",
+        "personality_en": "Smart, caring, big sister",
+        "personality_zh": "聪明、温柔的姐姐",
+        "color": "#EC4899",
+        "emoji": "⭐"
+      },
+      {
+        "id": "tom",
+        "name_en": "Tom",
+        "name_zh": "汤姆",
+        "personality_en": "Brave, impulsive, little brother",
+        "personality_zh": "勇敢冲动的弟弟",
+        "color": "#3B82F6",
+        "emoji": "👦"
+      },
+      {
+        "id": "mrs_thorne",
+        "name_en": "Mrs. Thorne",
+        "name_zh": "索恩夫人",
+        "personality_en": "Mysterious, keeper of the garden",
+        "personality_zh": "神秘的花园守护者",
+        "color": "#10B981",
+        "emoji": "🌹"
+      },
+      {
+        "id": "man",
+        "name_en": "Man",
+        "name_zh": "路人叔叔",
+        "personality_en": "A neighbor with heavy grocery bags",
+        "personality_zh": "拎着沉重购物袋的邻居",
+        "color": "#F59E0B",
+        "emoji": "👨"
+      },
+      {
+        "id": "lily",
+        "name_en": "Lily",
+        "name_zh": "莉莉",
+        "personality_en": "A little girl who lost her cat",
+        "personality_zh": "失去小猫的小女孩",
+        "color": "#F472B6",
+        "emoji": "👧"
+      },
+      {
+        "id": "max",
+        "name_en": "Max",
+        "name_zh": "麦克斯",
+        "personality_en": "A frustrated boy with a broken kite",
+        "personality_zh": "为破风筝苦恼的男孩",
+        "color": "#60A5FA",
+        "emoji": "👦"
+      },
+      {
+        "id": "witches",
+        "name_en": "Three Witches",
+        "name_zh": "三位女巫",
+        "personality_en": "Cold and menacing, but no match for kindness",
+        "personality_zh": "冷酷凶狠，却敌不过善意",
+        "color": "#6B7280",
+        "emoji": "🧙"
+      }
+    ],
+    "scenes": [
+      {
+        "id": "prologue",
+        "number": 0,
+        "title_en": "Prologue",
+        "title_zh": "开场",
+        "stage_direction_en": "",
+        "stage_direction_zh": "",
+        "lines": [
+          {"character_id": "narrator", "text_en": "Hello, everyone! Welcome to our play — \"Amy and Tom and the Secret Garden\"! This is a story about a sister named Amy, and her little brother Tom. One day after school, they find a mysterious key under an old oak tree. That key leads them to a secret garden, a lonely rose, and three impossible tasks. Can two ordinary kids break a witch's curse? Let's find out!", "text_zh": "大家好！欢迎来到我们的小剧场——《艾米与汤姆和秘密花园》！这个故事讲的是姐姐艾米和弟弟汤姆。有一天放学后，他们在老橡树下发现了一把神秘的钥匙。这把钥匙带他们走进了一座秘密花园、一朵孤独的玫瑰，还有三项不可能完成的任务。两个普通的孩子，能破除女巫的诅咒吗？我们一起来看看吧！"}
+        ]
+      },
+      {
+        "id": "act1",
+        "number": 1,
+        "title_en": "Act One · The Mysterious Key",
+        "title_zh": "第一幕：神秘钥匙",
+        "stage_direction_en": "After school. Amy and Tom are walking home. Tom kicks a stone. He looks bored.",
+        "stage_direction_zh": "放学了。艾米和汤姆走在回家的路上。汤姆踢着石子，一脸无聊。",
+        "lines": [
+          {"character_id": "tom", "text_en": "Boring day! Nothing fun ever happens!", "text_zh": "好无聊！从来没什么好玩的事！"},
+          {"character_id": "amy", "text_en": "*(sighs)* At least it's Friday. Want to play soccer?", "text_zh": "（叹气）至少是周五了。想踢球吗？", "stage_direction_en": "sighs", "stage_direction_zh": "叹气"},
+          {"character_id": "tom", "text_en": "Wait! What's that? Under the big tree!", "text_zh": "等等！那是什么？大树底下！", "stage_direction_en": "suddenly pointing", "stage_direction_zh": "突然指向远处"},
+          {"character_id": "narrator", "text_en": "They run to the oak tree. Tom picks up a rusty key with a purple ribbon.", "text_zh": "他们跑到橡树下。汤姆捡起一把生锈的钥匙，上面系着紫色丝带。"},
+          {"character_id": "tom", "text_en": "Wow! A key! Maybe it opens a treasure chest!", "text_zh": "哇！一把钥匙！说不定能打开宝箱！", "stage_direction_en": "eyes wide", "stage_direction_zh": "眼睛发亮"},
+          {"character_id": "amy", "text_en": "Or someone's lost house key.", "text_zh": "也可能是谁丢的家门钥匙。", "stage_direction_en": "rolls eyes", "stage_direction_zh": "翻白眼"},
+          {"character_id": "tom", "text_en": "Only one way to find out! Come on!", "text_zh": "试试看嘛！走！", "stage_direction_en": "grins", "stage_direction_zh": "咧嘴笑"},
+          {"character_id": "narrator", "text_en": "And so, Amy and Tom follow the key's clue… all the way to a hidden garden gate.", "text_zh": "于是，艾米和汤姆顺着钥匙的线索……一路找到了隐藏的花园大门。"}
+        ]
+      },
+      {
+        "id": "act2",
+        "number": 2,
+        "title_en": "Act Two · The Frozen Garden",
+        "title_zh": "第二幕：冰封花园",
+        "stage_direction_en": "The gate creaks open. Inside, everything is frozen. Gray trees. Dead flowers. But in the middle, one rosebush glows with golden light. A woman in a torn cloak kneels beside it.",
+        "stage_direction_zh": "大门吱呀一声开了。里面的一切都被冰封了。灰色的树，枯萎的花。但在正中央，一丛玫瑰闪着金光。一个披着破斗篷的女人跪在花旁。",
+        "lines": [
+          {"character_id": "tom", "text_en": "Creepy… Everything's dead except that rose.", "text_zh": "好吓人……除了那朵玫瑰，全都死了。", "stage_direction_en": "whispers", "stage_direction_zh": "小声"},
+          {"character_id": "amy", "text_en": "Look! Someone's there!", "text_zh": "看！有人！", "stage_direction_en": "gasps", "stage_direction_zh": "倒吸一口气"},
+          {"character_id": "mrs_thorne", "text_en": "You shouldn't be here, children. Please go.", "text_zh": "你们不该来这儿，孩子们。请走吧。", "stage_direction_en": "turns, a scar on her cheek", "stage_direction_zh": "转身，脸上有一道疤痕"},
+          {"character_id": "tom", "text_en": "Are you a witch?", "text_zh": "你是女巫吗？", "stage_direction_en": "blurts out", "stage_direction_zh": "脱口而出"},
+          {"character_id": "amy", "text_en": "Tom! She's just… a gardener. Right?", "text_zh": "汤姆！她只是……园丁。对吧？", "stage_direction_en": "pinches Tom", "stage_direction_zh": "掐汤姆"},
+          {"character_id": "mrs_thorne", "text_en": "A gardener? Once, yes. Three witch sisters cursed my garden. They froze everything — except this one rose.", "text_zh": "园丁？曾经是吧。三个女巫姐妹诅咒了我的花园。她们冻结了一切——除了这朵玫瑰。", "stage_direction_en": "bitter laugh", "stage_direction_zh": "苦笑"},
+          {"character_id": "amy", "text_en": "How can we help?", "text_zh": "我们能帮忙吗？"},
+          {"character_id": "mrs_thorne", "text_en": "To break the curse… three pure hearts must finish three impossible tasks. Before midnight.", "text_zh": "要破除诅咒……三个纯洁的心灵必须在午夜前完成三项不可能的任务。"},
+          {"character_id": "tom", "text_en": "Impossible? We can do it!", "text_zh": "不可能？我们能做到！", "stage_direction_en": "puffs out chest", "stage_direction_zh": "挺起胸膛"},
+          {"character_id": "amy", "text_en": "Tom! Don't promise things we can't do!", "text_h": "汤姆！别随便承诺做不到的事！", "stage_direction_en": "shoves Tom", "stage_direction_zh": "推汤姆"},
+          {"character_id": "mrs_thorne", "text_en": "We shall see. Good luck, children.", "text_zh": "我们拭目以待。祝你们好运，孩子们。", "stage_direction_en": "faint smile", "stage_direction_zh": "微微一笑"}
+        ]
+      },
+      {
+        "id": "act3_task1",
+        "number": 3,
+        "title_en": "Act Three · Task One: The Bridge",
+        "title_zh": "第三幕·任务一：过桥",
+        "stage_direction_en": "Amy and Tom come to an old bridge. A man is struggling with heavy grocery bags.",
+        "stage_direction_zh": "艾米和汤姆来到一座旧桥前。一位叔叔正吃力地提着沉重的购物袋。",
+        "lines": [
+          {"character_id": "narrator", "text_en": "Task One! Amy and Tom come to an old bridge. A man is struggling with heavy grocery bags.", "text_zh": "第一项任务！艾米和汤姆来到一座旧桥前。一位叔叔正吃力地提着沉重的购物袋。"},
+          {"character_id": "man", "text_en": "Ohhh! These bags are so heavy! I'll never make it across!", "text_zh": "哎呀！这些袋子太重了！我肯定过不去！", "stage_direction_en": "groans", "stage_direction_zh": "呻吟"},
+          {"character_id": "tom", "text_en": "Let me help you, sir!", "text_zh": "我来帮您，叔叔！", "stage_direction_en": "runs over", "stage_direction_zh": "跑过去"},
+          {"character_id": "man", "text_en": "You? But you're just a little kid!", "text_zh": "你？你还是个小孩子呢！", "stage_direction_en": "surprised", "stage_direction_zh": "惊讶"},
+          {"character_id": "amy", "text_en": "Don't worry — he's stronger than he looks!", "text_zh": "别担心——他比看起来力气大！", "stage_direction_en": "smiles", "stage_direction_zh": "笑着"},
+          {"character_id": "narrator", "text_en": "Tom carries the bags across the bridge, step by step. He makes it!", "text_zh": "汤姆一步一步把袋子搬过了桥。他做到了！"},
+          {"character_id": "man", "text_en": "Thank you, young man! You have a kind heart!", "text_zh": "谢谢你，小伙子！你有一颗善良的心！", "stage_direction_en": "waves", "stage_direction_zh": "挥手"},
+          {"character_id": "tom", "text_en": "Anytime!", "text_zh": "不客气！", "stage_direction_en": "beams", "stage_direction_zh": "开心地笑"}
+        ]
+      },
+      {
+        "id": "act3_task2",
+        "number": 4,
+        "title_en": "Act Three · Task Two: The Lost Cat",
+        "title_zh": "第三幕·任务二：找小猫",
+        "stage_direction_en": "A little girl named Lily is crying. Her cat Mittens is lost.",
+        "stage_direction_zh": "一个叫莉莉的小女孩在哭。她的小猫手套不见了。",
+        "lines": [
+          {"character_id": "narrator", "text_en": "Task Two! A little girl named Lily is crying. Her cat Mittens is lost.", "text_zh": "第二项任务！一个叫莉莉的小女孩在哭。她的小猫手套不见了。"},
+          {"character_id": "lily", "text_en": "Mittens! Where are you? She ran away!", "text_zh": "手套！你在哪儿？她跑丢了！", "stage_direction_en": "crying", "stage_direction_zh": "哭泣"},
+          {"character_id": "amy", "text_en": "Don't cry. We'll help you find her.", "text_zh": "别哭。我们帮你找。", "stage_direction_en": "pats Lily's shoulder", "stage_direction_zh": "轻轻拍莉莉的肩膀"},
+          {"character_id": "tom", "text_en": "Here, kitty kitty… What does she look like?", "text_zh": "猫咪猫咪……她长什么样？", "stage_direction_en": "kneels down", "stage_direction_zh": "蹲下来"},
+          {"character_id": "lily", "text_en": "Gray, with white paws. She's very shy.", "text_zh": "灰色的，白爪子。她很害羞。"},
+          {"character_id": "narrator", "text_en": "They search and search. Tom looks under a bush.", "text_zh": "他们找啊找。汤姆在灌木丛下看了看。"},
+          {"character_id": "tom", "text_en": "There she is! Gotcha, Mittens!", "text_zh": "找到了！抓住你了，手套！", "stage_direction_en": "excited", "stage_direction_zh": "兴奋地"},
+          {"character_id": "lily", "text_en": "Oh, thank you! Thank you so much!", "text_zh": "哦，谢谢你们！太谢谢了！", "stage_direction_en": "hugs cat", "stage_direction_zh": "抱住小猫"},
+          {"character_id": "amy", "text_en": "That felt really good.", "text_zh": "这感觉真好。", "stage_direction_en": "smiles", "stage_direction_zh": "微笑"}
+        ]
+      },
+      {
+        "id": "act3_task3",
+        "number": 5,
+        "title_en": "Act Three · Task Three: The Kite",
+        "title_zh": "第三幕·任务三：修风筝",
+        "stage_direction_en": "A boy named Max is kicking a broken kite on the ground.",
+        "stage_direction_zh": "一个叫麦克斯的男孩正在踢地上的一只破风筝。",
+        "lines": [
+          {"character_id": "narrator", "text_en": "Task Three! A boy named Max is kicking a broken kite on the ground.", "text_zh": "第三项任务！一个叫麦克斯的男孩正在踢地上的一只破风筝。"},
+          {"character_id": "max", "text_en": "Stupid kite! It never flies! It's broken!", "text_zh": "破风筝！根本飞不起来！坏掉了！", "stage_direction_en": "angry", "stage_direction_zh": "生气"},
+          {"character_id": "amy", "text_en": "Hey, don't give up. Let's fix it together.", "text_zh": "嘿，别放弃。我们一起修。", "stage_direction_en": "picks up kite", "stage_direction_zh": "捡起风筝"},
+          {"character_id": "amy", "text_en": "Tom, hand me that string in your pocket.", "text_zh": "汤姆，把你口袋里的线给我。", "stage_direction_en": "to Tom", "stage_direction_zh": "对汤姆"},
+          {"character_id": "tom", "text_en": "How did you know I had string?", "text_zh": "你怎么知道我带了线？"},
+          {"character_id": "amy", "text_en": "Because you collect everything. Like rusty keys!", "text_zh": "因为你什么都捡。比如生锈的钥匙！", "stage_direction_en": "laughs", "stage_direction_zh": "笑"},
+          {"character_id": "narrator", "text_en": "They fix the kite together. Max tries again.", "text_zh": "他们一起修好了风筝。麦克斯再次尝试。"},
+          {"character_id": "max", "text_en": "It's flying! It's flying! Thank you!", "text_zh": "飞起来了！飞起来了！谢谢你们！", "stage_direction_en": "kite flies, cheering", "stage_direction_zh": "风筝飞起来，欢呼"},
+          {"character_id": "tom", "text_en": "We did it! All three tasks!", "text_zh": "我们做到了！三项任务全部完成！", "stage_direction_en": "jumps up", "stage_direction_zh": "跳起来"}
+        ]
+      },
+      {
+        "id": "act4",
+        "number": 6,
+        "title_en": "Act Four · The Curse Is Broken",
+        "title_zh": "第四幕：诅咒破除",
+        "stage_direction_en": "Midnight! Amy and Tom rush back to the garden. The three witches appear, swirling in black cloaks.",
+        "stage_direction_zh": "午夜！艾米和汤姆赶回花园。三个女巫出现了，黑色斗篷旋转飞舞。",
+        "lines": [
+          {"character_id": "narrator", "text_en": "Midnight! Amy and Tom rush back to the garden. The three witches appear, swirling in black cloaks.", "text_zh": "午夜！艾米和汤姆赶回花园。三个女巫出现了，黑色斗篷旋转飞舞。"},
+          {"character_id": "witches", "text_en": "Foolish children! You think kindness can break our curse?", "text_zh": "愚蠢的小孩！你们以为善意能破除我们的诅咒？", "stage_direction_en": "Witch 1, cold laugh", "stage_direction_zh": "女巫甲，冷笑"},
+          {"character_id": "witches", "text_en": "We'll freeze you too!", "text_zh": "连你们一起冻住！", "stage_direction_en": "Witch 2", "stage_direction_zh": "女巫乙"},
+          {"character_id": "witches", "text_en": "Prepare to —", "text_zh": "准备——", "stage_direction_en": "Witch 3, cackles", "stage_direction_zh": "女巫丙，尖笑"},
+          {"character_id": "narrator", "text_en": "Suddenly, the golden rose blazes with light! It shines brighter and brighter. The witches scream!", "text_zh": "突然，金色的玫瑰发出耀眼的光芒！越来越亮。女巫们尖叫起来！"},
+          {"character_id": "witches", "text_en": "No! The light! It burns!", "text_zh": "不！这光！好烫啊！", "stage_direction_en": "All Three Witches screaming, they vanish", "stage_direction_zh": "三位女巫尖叫，消失", "is_chorus": true},
+          {"character_id": "narrator", "text_en": "The witches vanish. The ice melts. Flowers bloom everywhere. The garden is alive again!", "text_zh": "女巫们消失了。冰雪融化。到处鲜花盛开。花园重获新生！"},
+          {"character_id": "mrs_thorne", "text_en": "The curse is broken! You proved that kindness is stronger than any magic.", "text_zh": "诅咒破除了！你们证明了——善意比任何魔法都强大。", "stage_direction_en": "smiles, cloak now bright and new", "stage_direction_zh": "微笑，斗篷变得崭新"},
+          {"character_id": "amy", "text_en": "But… why us? We're just kids.", "text_zh": "可是……为什么是我们？我们只是小孩。"},
+          {"character_id": "mrs_thorne", "text_en": "That's exactly why. Children's hearts are the purest. Now — look at my garden!", "text_zh": "正是这个原因。孩子的心灵最纯洁。现在——看看我的花园！", "stage_direction_en": "kneels down", "stage_direction_zh": "蹲下来"},
+          {"character_id": "narrator", "text_en": "Flowers bloom in every color. Butterflies dance. All their new friends arrive — the Man, Lily with Mittens, and Max with his kite. Everyone celebrates together!", "text_zh": "五颜六色的花朵盛开。蝴蝶飞舞。所有新朋友都来了——路人叔叔、抱着手套的莉莉、拿着风筝的麦克斯。大家一起庆祝！"},
+          {"character_id": "tom", "text_en": "Best day ever!", "text_zh": "最棒的一天！", "stage_direction_en": "spins around, arms wide", "stage_direction_zh": "转圈，张开双臂"},
+          {"character_id": "amy", "text_en": "Okay, okay. You were right about the key.", "text_zh": "好吧好吧。关于钥匙，你说对了。", "stage_direction_en": "laughs", "stage_direction_zh": "笑"},
+          {"character_id": "tom", "text_en": "I'm always right!", "text_zh": "我一直都是对的！", "stage_direction_en": "proud", "stage_direction_zh": "得意"},
+          {"character_id": "amy", "text_en": "Don't push it!", "text_zh": "别得意！", "stage_direction_en": "shoves him", "stage_direction_zh": "推他一下"},
+          {"character_id": "mrs_thorne", "text_en": "Now then — who's ready for lemonade and cookies?", "text_zh": "好了——谁想来点柠檬汁和饼干？", "stage_direction_en": "clapping her hands", "stage_direction_zh": "拍拍手"},
+          {"character_id": "narrator", "text_en": "ME! 🎉", "text_zh": "我要！🎉", "is_chorus": true}
+        ]
+      },
+      {
+        "id": "curtain_call",
+        "number": 7,
+        "title_en": "Curtain Call",
+        "title_zh": "谢幕",
+        "stage_direction_en": "All actors come to the front of the stage and line up.",
+        "stage_direction_zh": "全体演员走到舞台前方，排成一排。",
+        "lines": [
+          {"character_id": "narrator", "text_en": "And so, the secret garden bloomed again, and Amy and Tom learned that even small acts of kindness can work big magic. The End!", "text_zh": "就这样，秘密花园再次盛开。艾米和汤姆明白了：小小的善意也能创造大大的魔法。故事结束！"},
+          {"character_id": "narrator", "text_en": "Now, everyone — let's take one big bow together! On the count of three — one… two… three!", "text_zh": "现在，大家一起——深深一鞠躬！数到三——一……二……三！"},
+          {"character_id": "narrator", "text_en": "Good night, everyone! See you next time!", "text_zh": "大家晚安！下次再见！"}
+        ]
+      }
+    ]
   }
 ]
