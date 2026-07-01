@@ -644,10 +644,24 @@ def api_bulk_upload():
     if not label:
         return jsonify({'error': 'Label required / 需要版本名称'}), 400
 
-    # Get OpenAI API key
+    # Get OpenAI API key — try env var first, then file
     api_key = os.environ.get('OPENAI_API_KEY', '')
     if not api_key:
-        return jsonify({'error': 'OPENAI_API_KEY not set on server / 服务器未设置 OpenAI API Key，请联系管理员'}), 500
+        # Try reading from key file
+        key_paths = [
+            os.path.expanduser('~/.openai_key'),
+            '/home/Stella0930/.openai_key',
+        ]
+        for kp in key_paths:
+            try:
+                with open(kp, 'r') as f:
+                    api_key = f.read().strip()
+                if api_key:
+                    break
+            except:
+                pass
+    if not api_key:
+        return jsonify({'error': 'OPENAI_API_KEY not set. Tried env var and ~/.openai_key file / 请在 Bash 控制台执行: echo sk-你的key > ~/.openai_key'}), 500
 
     # Save the audio file
     ext = audio.filename.split('.')[-1] if '.' in audio.filename else 'mp3'
