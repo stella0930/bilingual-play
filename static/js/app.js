@@ -1134,6 +1134,7 @@ const App = {
         w._followStream = stream;
         w._followAudioChunks = [];
         w._followRecognition = null;
+        w._followStopRequested = false;   // Flag to prevent auto-restart
 
         // Start MediaRecorder to save audio for playback
         // Choose a format compatible with iOS Safari (mp4/aac preferred over webm)
@@ -1181,20 +1182,19 @@ const App = {
 
             recognition.onend = () => {
                 // Speech ended, but DON'T stop recording automatically
-                // User can keep talking — recording continues until they click Stop
-                // Only restart recognition if still recording
-                if (w._isFollowRecording && w._followRecognition) {
+                // Only restart recognition if still recording AND stop was not requested
+                if (w._isFollowRecording && w._followRecognition && !w._followStopRequested) {
                     try { w._followRecognition.start(); } catch(e) {}
                 }
             };
 
             recognition.onerror = (event) => {
                 console.warn('Speech recognition error:', event.error);
-                if (event.error === 'no-speech' || event.error === 'aborted') {
+                if ((event.error === 'no-speech' || event.error === 'aborted') && !w._followStopRequested) {
                     // Silent — restart recognition if still recording
                     if (w._isFollowRecording && w._followRecognition) {
                         setTimeout(() => {
-                            try { if (w._isFollowRecording) w._followRecognition.start(); } catch(e) {}
+                            try { if (w._isFollowRecording && !w._followStopRequested) w._followRecognition.start(); } catch(e) {}
                         }, 300);
                     }
                 }
@@ -1217,6 +1217,7 @@ const App = {
         const w = this.data.watch;
         if (!w._isFollowRecording) return;
         w._isFollowRecording = false;
+        w._followStopRequested = true;   // Block auto-restart of recognition
 
         const scoreEl = document.getElementById('watchScoreResult');
         const followBtn = document.getElementById('watchFollowBtn');
