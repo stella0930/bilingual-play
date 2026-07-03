@@ -63,7 +63,7 @@ body {
 
 /* ========== Container ========== */
 .container {
-    max-width: 900px;
+    max-width: 1280px;
     margin: 0 auto;
     padding: 24px 16px;
 }
@@ -199,16 +199,6 @@ body {
 
 .badge-scenes { background: #EEF2FF; color: #6366F1; }
 .badge-chars { background: #FEF3C7; color: #D97706; }
-
-.meta-badge {
-    font-size: 0.8rem;
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-weight: 600;
-}
-
-.badge-scenes { background: var(--primary-light); color: var(--primary); }
-.badge-chars { background: var(--success-light); color: var(--success); }
 
 /* ========== Play Detail Page ========== */
 .play-header {
