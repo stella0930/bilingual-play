@@ -1116,15 +1116,21 @@ const App = {
 
         // If already recording, stop it
         if (w._isFollowRecording) {
-            this.watchStopFollowRead();
+            await this.watchStopFollowRead();
             return;
         }
+
+        // Disable button briefly to prevent double-click
+        followBtn.disabled = true;
+        followBtn.textContent = '⏳ ...';
 
         // Try to get microphone access
         let stream;
         try {
             stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         } catch(e) {
+            followBtn.disabled = false;
+            followBtn.textContent = '🎤 跟读 / Read After Me';
             scoreEl.classList.remove('hidden');
             scoreEl.innerHTML = '❌ Cannot access microphone. Use "⌨️ Type to Score" instead. / 无法访问麦克风，请用打字评分。';
             return;
