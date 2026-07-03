@@ -1140,7 +1140,7 @@ const App = {
         w._followStream = stream;
         w._followAudioChunks = [];
         w._followRecognition = null;
-        w._followStopRequested = false;   // Flag to prevent auto-restart
+        w._followRecognizedText = '';
 
         // Start MediaRecorder to save audio for playback
         // Choose a format compatible with iOS Safari (mp4/aac preferred over webm)
@@ -1165,14 +1165,13 @@ const App = {
         if (SpeechRecognition) {
             const recognition = new SpeechRecognition();
             recognition.lang = lang === 'en' ? 'en-US' : 'zh-CN';
-            recognition.interimResults = true;       // Enable interim results for long lines
+            recognition.interimResults = true;
             recognition.maxAlternatives = 1;
-            recognition.continuous = true;            // Keep listening for long lines
+            recognition.continuous = true;
             w._followRecognition = recognition;
-            w._followRecognizedText = '';             // Accumulate recognized text
+            w._followRecognizedText = '';
 
             recognition.onresult = (event) => {
-                // Accumulate ALL results for long lines
                 let fullText = '';
                 for (let i = event.resultIndex; i < event.results.length; i++) {
                     if (event.results[i].isFinal) {
@@ -1181,30 +1180,13 @@ const App = {
                 }
                 if (fullText.trim()) {
                     w._followRecognizedText = (w._followRecognizedText + ' ' + fullText).trim();
-                    // Show live feedback
-                    scoreEl.innerHTML = '🎤 <span style="color:var(--success);font-size:0.9rem">' + w._followRecognizedText.substring(0, 80) + '...</span>';
+                    scoreEl.innerHTML = '🎤 <span style="color:var(--success);font-size:0.9rem">' + (lang === 'en' ? 'Recognizing...' : '识别中...') + '</span>';
                 }
             };
 
-            recognition.onend = () => {
-                // Speech ended, but DON'T stop recording automatically
-                // Only restart recognition if still recording AND stop was not requested
-                if (w._isFollowRecording && w._followRecognition && !w._followStopRequested) {
-                    try { w._followRecognition.start(); } catch(e) {}
-                }
-            };
-
-            recognition.onerror = (event) => {
-                console.warn('Speech recognition error:', event.error);
-                if ((event.error === 'no-speech' || event.error === 'aborted') && !w._followStopRequested) {
-                    // Silent — restart recognition if still recording
-                    if (w._isFollowRecording && w._followRecognition) {
-                        setTimeout(() => {
-                            try { if (w._isFollowRecording && !w._followStopRequested) w._followRecognition.start(); } catch(e) {}
-                        }, 300);
-                    }
-                }
-            };
+            // DON'T restart on end/error — user stops manually
+            recognition.onend = () => {};
+            recognition.onerror = () => {};
 
             try { recognition.start(); } catch(e) {
                 console.warn('Cannot start recognition');
@@ -1223,7 +1205,6 @@ const App = {
         const w = this.data.watch;
         if (!w._isFollowRecording) return;
         w._isFollowRecording = false;
-        w._followStopRequested = true;   // Block auto-restart of recognition
 
         const scoreEl = document.getElementById('watchScoreResult');
         const followBtn = document.getElementById('watchFollowBtn');
