@@ -1158,26 +1158,46 @@ const App = {
         if (SpeechRecognition) {
             const recognition = new SpeechRecognition();
             recognition.lang = lang === 'en' ? 'en-US' : 'zh-CN';
-            recognition.interimResults = false;
+            recognition.interimResults = true;       // Enable interim results for long lines
             recognition.maxAlternatives = 1;
-            recognition.continuous = false;
+            recognition.continuous = true;            // Keep listening for long lines
             w._followRecognition = recognition;
+            w._followRecognizedText = '';             // Accumulate recognized text
 
-            recognition.onresult = async (event) => {
-                const recognized = event.results[0][0].transcript;
-                // Stop recording first
-                await this.watchStopFollowRead();
-                // Score
-                await this.watchScoreText(recognized, expectedText, lang, lineData);
-                followBtn.textContent = '🎤 跟读 / Read Again';
-                followBtn.disabled = false;
-                nextBtn.classList.remove('hidden');
-                w.practiceStep = 'scored';
+            recognition.onresult = (event) => {
+                // Accumulate ALL results for long lines
+                let fullText = '';
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    if (event.results[i].isFinal) {
+                        fullText += event.results[i][0].transcript + ' ';
+                    }
+                }
+                if (fullText.trim()) {
+                    w._followRecognizedText = (w._followRecognizedText + ' ' + fullText).trim();
+                    // Show live feedback
+                    scoreEl.innerHTML = '🎤 <span style="color:var(--success);font-size:0.9rem">' + w._followRecognizedText.substring(0, 80) + '...</span>';
+                }
+            };
+
+            recognition.onend = () => {
+                // Speech ended, but DON'T stop recording automatically
+                // User can keep talking — recording continues until they click Stop
+                // Only restart recognition if still recording
+                if (w._isFollowRecording && w._followRecognition) {
+                    try { w._followRecognition.start(); } catch(e) {}
+                }
             };
 
             recognition.onerror = (event) => {
                 console.warn('Speech recognition error:', event.error);
-                // Don't stop recording - let user stop manually and use type fallback
+                if (event.error === 'no-speech' || event.error === 'aborted') {
+                    // Silent — restart recognition if still recording
+                    if (w._isFollowRecording && w._followRecognition) {
+                        setTimeout(() => {
+                            try { if (w._isFollowRecording) w._followRecognition.start(); } catch(e) {}
+                        }, 300);
+                    }
+                }
             };
 
             try { recognition.start(); } catch(e) {
@@ -1202,6 +1222,11 @@ const App = {
         const followBtn = document.getElementById('watchFollowBtn');
         const nextBtn = document.getElementById('watchNextLineBtn');
         const lang = w.lang === 'bilingual' ? 'en' : w.lang;
+        const lineData = w.currentLineData;
+        const expectedText = lang === 'en' ? (lineData.text_en || '') : (lineData.text_zh || '');
+
+        // Save recognized text before stopping recognition
+        const recognizedText = w._followRecognizedText || '';
 
         // Stop SpeechRecognition
         if (w._followRecognition) {
@@ -1218,7 +1243,7 @@ const App = {
                         w._followStream.getTracks().forEach(t => t.stop());
                     }
 
-                    // Create audio blob for playback (use correct MIME type for iOS compatibility)
+                    // Create audio blob for playback
                     const blobType = w._followMimeType || 'audio/webm';
                     const blob = new Blob(w._followAudioChunks, { type: blobType });
                     const url = URL.createObjectURL(blob);
@@ -1236,13 +1261,16 @@ const App = {
                     followBtn.textContent = '🎤 跟读 / Read Again';
                     nextBtn.classList.remove('hidden');
 
-                    // Try to score if we got recognition result
-                    // If not, show typing option
+                    // Auto-score if we have recognized text
                     const scoreArea = document.getElementById('watchScoreArea');
-                    scoreArea.innerHTML = `
-                        <button class="btn btn-outline btn-sm" onclick="App.watchTypeRead()" style="margin-right:8px">⌨️ Type to Score / 打字评分</button>
-                        <span style="color:var(--text-secondary);font-size:0.85rem">${lang === 'en' ? '(If voice scoring failed, type what you read)' : '（如果语音评分失败，请打字输入你读的内容）'}</span>
-                    `;
+                    if (recognizedText && recognizedText.length > 3) {
+                        this.watchScoreText(recognizedText, expectedText, lang, lineData, true);
+                    } else {
+                        scoreArea.innerHTML = `
+                            <button class="btn btn-outline btn-sm" onclick="App.watchTypeRead()" style="margin-right:8px">⌨️ Type to Score / 打字评分</button>
+                            <span style="color:var(--text-secondary);font-size:0.85rem">${lang === 'en' ? '(If voice scoring failed, type what you read)' : '（如果语音评分失败，请打字输入你读的内容）'}</span>
+                        `;
+                    }
 
                     resolve();
                 };
