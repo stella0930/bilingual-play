@@ -260,7 +260,7 @@
         "stage_direction_en": "",
         "stage_direction_zh": "",
         "lines": [
-          {"character_id": "narrator", "text_en": "Hello, everyone! Welcome to our play — \"Amy and Tom and the Secret Garden\"! This is a story about a sister named Amy, and her little brother Tom. One day after school, they find a mysterious key under an old oak tree. That key leads them to a secret garden, a lonely rose, and three impossible tasks. Can two ordinary kids break a witch's curse? Let's find out!", "text_zh": "大家好！欢迎来到我们的小剧场——《艾米与汤姆和秘密花园》！这个故事讲的是姐姐艾米和弟弟汤姆。有一天放学后，他们在老橡树下发现了一把神秘的钥匙。这把钥匙带他们走进了一座秘密花园、一朵孤独的玫瑰，还有三项不可能完成的任务。两个普通的孩子，能破除女巫的诅咒吗？我们一起来看看吧！"}
+          {"character_id": "narrator", "text_en": "Hello, everyone! Welcome to our play — \"The Secret Garden\"! This is a story about a sister named Amy, and her little brother Tom. One day after school, they find a mysterious key under an old oak tree. That key leads them to a secret garden, a lonely rose, and three impossible tasks. Can two ordinary kids break a witch's curse? Let's find out!", "text_zh": "大家好！欢迎来到我们的小剧场——《秘密花园》！这个故事讲的是姐姐艾米和弟弟汤姆。有一天放学后，他们在老橡树下发现了一把神秘的钥匙。这把钥匙带他们走进了一座秘密花园、一朵孤独的玫瑰，还有三项不可能完成的任务。两个普通的孩子，能破除女巫的诅咒吗？我们一起来看看吧！"}
         ]
       },
       {
