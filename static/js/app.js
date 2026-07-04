@@ -1221,8 +1221,19 @@ const App = {
         const followBtn = document.getElementById('watchFollowBtn');
         const nextBtn = document.getElementById('watchNextLineBtn');
         const lang = w.lang === 'bilingual' ? 'en' : w.lang;
-        const lineData = w.currentLineData;
-        const expectedText = lang === 'en' ? (lineData.text_en || '') : (lineData.text_zh || '');
+        const lineData = w.allLines[w.currentLineIdx];
+        if (!lineData) {
+            // Defensive: line data missing, just clean up recording state
+            if (w._followMediaRecorder && w._followMediaRecorder.state !== 'inactive') {
+                try { w._followMediaRecorder.stop(); } catch(e) {}
+            }
+            if (w._followStream) {
+                w._followStream.getTracks().forEach(t => t.stop());
+            }
+            if (followBtn) followBtn.textContent = '🎤 跟读 / Read After Me';
+            return;
+        }
+        const expectedText = lang === 'en' ? (lineData.textEn || '') : (lineData.textZh || '');
 
         // Save recognized text before stopping recognition
         const recognizedText = w._followRecognizedText || '';
