@@ -1777,3 +1777,72 @@ body {
         font-size: 0.8rem;
     }
 }
+
+/* ===== Version Manager ===== */
+.watch-version-manager {
+    margin-top: 24px;
+    padding: 16px;
+    background: #f8f9ff;
+    border: 1px solid #dde0f0;
+    border-radius: 12px;
+}
+.version-manager-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: #5566cc;
+}
+.version-manager-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.version-manager-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid #e8e8e8;
+    flex-wrap: wrap;
+}
+.version-label {
+    font-weight: 600;
+    min-width: 120px;
+}
+.version-lines {
+    color: #888;
+    font-size: 0.85rem;
+}
+.version-badge {
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+.version-permanent {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+.version-guest {
+    background: #fff3e0;
+    color: #e65100;
+}
+.version-delete-btn {
+    margin-left: auto;
+}
+.version-manager-empty, .version-manager-loading, .version-manager-error {
+    color: #999;
+    font-size: 0.9rem;
+    padding: 8px;
+}
+
+/* Bulk label input styling */
+#bulkLabelInput {
+    padding: 6px 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    min-width: 160px;
+}

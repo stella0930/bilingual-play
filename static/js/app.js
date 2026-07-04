@@ -517,10 +517,8 @@ const App = {
                 }
             } catch(e) { console.warn('Could not load reference audio:', e); }
 
-            // Build labels: fixed AI label + only Amy朗读版 and Tom朗读版
-            const ALLOWED_LABELS = ['Amy朗读版', 'Tom朗读版'];
-            const serverLabels = allLabels.filter(l => ALLOWED_LABELS.includes(l));
-            allLabels = ['🤖 AI朗读', ...serverLabels];
+            // Build labels: AI label + all available reading versions
+            allLabels = ['🤖 AI朗读', ...allLabels.filter(l => l !== '🤖 AI朗读')];
 
             this.data.watch = {
                 play,
@@ -604,22 +602,23 @@ const App = {
                 <!-- Bulk upload area (admin only) -->
                 ${this.data.user && this.data.user.is_admin ? `
                 <div class="watch-bulk-upload" id="watchBulkUpload">
-                    <div class="bulk-upload-label">📤 标准读音上传 / Standard Pronunciation Upload</div>
+                    <div class="bulk-upload-label">📤 朗读版上传 / Reading Version Upload</div>
                     <div class="bulk-upload-row">
-                        <select id="bulkLabelSelect" class="bulk-label-select">
-                            <option value="Amy朗读版">Amy朗读版</option>
-                            <option value="Tom朗读版">Tom朗读版</option>
-                        </select>
+                        <input type="text" id="bulkLabelInput" class="bulk-label-select" placeholder="小朋友名字 e.g. Emily朗读版" list="bulkLabelList">
+                        <datalist id="bulkLabelList">
+                            <option value="Amy朗读版">
+                            <option value="Tom朗读版">
+                        </datalist>
                         <select id="bulkLangSelect" class="bulk-lang-select">
                             <option value="en">🇬🇧 English</option>
                             <option value="zh">🇨🇳 中文</option>
                         </select>
                         <label class="btn btn-outline btn-sm bulk-upload-btn">
-                            📁 Choose MP3
+                            📁 Choose Audio
                             <input type="file" accept="audio/*,.mp3,.wav,.m4a" style="display:none" onchange="App.bulkUpload(this)">
                         </label>
                     </div>
-                    <span class="bulk-upload-hint" id="bulkUploadHint">提示：把整篇台词一次读完，上传后 AI 自动切割匹配每句 / Read all lines in one go, AI auto-splits</span>
+                    <span class="bulk-upload-hint" id="bulkUploadHint">提示：输入小朋友名字（如"Emily朗读版"），上传整篇录音后 AI 自动切割 / Enter child's name, upload full audio, AI auto-splits. Guest versions auto-expire in 7 days.</span>
                 </div>
                 ` : ''}
 
@@ -677,6 +676,16 @@ const App = {
                 <div class="watch-script-nav" id="watchScriptNav">
                     ${this.renderWatchScriptNav(play)}
                 </div>
+
+                <!-- Version Management (admin only) -->
+                ${this.data.user && this.data.user.is_admin ? `
+                <div class="watch-version-manager" id="watchVersionManager">
+                    <div class="version-manager-title">📋 朗读版管理 / Reading Version Manager</div>
+                    <div id="versionManagerList" class="version-manager-list">
+                        <span class="version-manager-loading">Loading...</span>
+                    </div>
+                </div>
+                ` : ''}
             `;
 
             container.innerHTML = html;
@@ -684,7 +693,9 @@ const App = {
             this.showWatchCurrentLine();
             // Auto-cleanup old audio recordings (admin only)
             if (this.data.user && this.data.user.is_admin) {
-                fetch(`/api/cleanup-audio/${playId}`, { method: 'POST' }).catch(() => {});
+                fetch(`/api/cleanup-audio/${playId}`, { method: 'POST' }).then(() => {
+                    this.loadVersionManager(playId);
+                }).catch(() => {});
             }
         } catch (e) {
             console.error('Watch page error:', e);
@@ -1391,16 +1402,20 @@ const App = {
         const file = inputEl.files[0];
         if (!file) return;
 
-        const labelSelect = document.getElementById('bulkLabelSelect');
+        const labelInput = document.getElementById('bulkLabelInput');
         const langSelect = document.getElementById('bulkLangSelect');
         const hintEl = document.getElementById('bulkUploadHint');
-        const label = labelSelect.value;
+        let label = labelInput ? labelInput.value.trim() : '';
         const lang = langSelect.value;
 
         if (!label) {
-            hintEl.textContent = '❌ 请选择版本 / Please select a version';
+            hintEl.textContent = '❌ 请输入小朋友名字 / Please enter a name';
             inputEl.value = '';
             return;
+        }
+        // Auto-append 朗读版 if not present
+        if (!label.endsWith('朗读版')) {
+            label = label + '朗读版';
         }
 
         hintEl.textContent = '⏳ AI 正在识别和切割音频，请稍等... / AI processing audio, please wait...';
@@ -1428,6 +1443,7 @@ const App = {
                 this.renderWatchLabelSelector();
                 this.showToast(`✅ ${label} uploaded! ${data.matched_lines} lines matched`, 'success');
                 inputEl.value = '';
+                if (labelInput) labelInput.value = '';
             } else {
                 hintEl.textContent = `❌ ${data.error || 'Upload failed / 上传失败'}`;
                 hintEl.style.color = 'var(--danger)';
@@ -1439,10 +1455,8 @@ const App = {
             inputEl.value = '';
         }
     },
-
     async reloadWatchAudio() {
         const w = this.data.watch;
-        const ALLOWED_LABELS = ['Amy朗读版', 'Tom朗读版'];
         try {
             const refRes = await fetch(`/api/reference-audio/${w.play.id}`);
             const refData = await refRes.json();
@@ -1451,7 +1465,6 @@ const App = {
             let labels = ['🤖 AI朗读'];
             for (const [key, labelMap] of Object.entries(refData)) {
                 for (const [label, rec] of Object.entries(labelMap)) {
-                    if (!ALLOWED_LABELS.includes(label)) continue;
                     if (rec.bulk && rec.timestamps) {
                         if (!w.bulkAudio[label]) {
                             w.bulkAudio[label] = { file_path: rec.file_path, timestamps: {} };
@@ -1467,6 +1480,54 @@ const App = {
             }
             w.allLabels = labels;
         } catch(e) { console.warn('Could not reload audio:', e); }
+    },
+
+    async loadVersionManager(playId) {
+        const listEl = document.getElementById('versionManagerList');
+        if (!listEl) return;
+        try {
+            const res = await fetch(`/api/audio-versions/${playId}`);
+            const versions = await res.json();
+            if (!versions.length) {
+                listEl.innerHTML = '<span class="version-manager-empty">暂无朗读版 / No versions yet</span>';
+                return;
+            }
+            listEl.innerHTML = versions.map(v => {
+                const badge = v.is_permanent
+                    ? '<span class="version-badge version-permanent">永久 / Permanent</span>'
+                    : `<span class="version-badge version-guest">⏰ ${v.days_remaining}天 / ${v.days_remaining}d left</span>`;
+                const deleteBtn = v.is_permanent
+                    ? ''
+                    : `<button class="btn btn-danger btn-sm version-delete-btn" onclick="App.deleteVersion(${playId}, '${v.label}')">🗑 Delete</button>`;
+                return `
+                    <div class="version-manager-item">
+                        <span class="version-label">🎤 ${v.label}</span>
+                        <span class="version-lines">${v.line_count} lines</span>
+                        ${badge}
+                        ${deleteBtn}
+                    </div>
+                `;
+            }).join('');
+        } catch(e) {
+            listEl.innerHTML = '<span class="version-manager-error">Failed to load / 加载失败</span>';
+        }
+    },
+
+    async deleteVersion(playId, label) {
+        if (!confirm(`确定删除「${label}」？/ Delete "${label}"?`)) return;
+        try {
+            await fetch(`/api/delete-audio-version/${playId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ label })
+            });
+            this.showToast(`✅ ${label} deleted`, 'success');
+            await this.loadVersionManager(playId);
+            await this.reloadWatchAudio();
+            this.renderWatchLabelSelector();
+        } catch(e) {
+            this.showToast('❌ Delete failed', 'error');
+        }
     },
 
     watchNextAfterPractice() {

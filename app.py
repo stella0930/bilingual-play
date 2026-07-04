@@ -613,19 +613,92 @@ def api_audio_labels(play_id):
 @app.route('/api/cleanup-audio/<int:play_id>', methods=['POST'])
 @admin_required
 def api_cleanup_audio(play_id):
-    """Delete all reference recordings except Amy朗读版 and Tom朗读版."""
-    ALLOWED = ['Amy朗读版', 'Tom朗读版']
+    """Auto-delete guest recordings older than 7 days. Amy/Tom are permanent."""
+    PERMANENT = ['Amy朗读版', 'Tom朗读版']
+    GUEST_MAX_DAYS = 7
     db = get_db()
-    # Delete recordings not in the allowed list
-    placeholders = ','.join(['?'] * len(ALLOWED))
+    # Find all guest labels (not permanent)
+    all_labels = db.execute(
+        'SELECT DISTINCT audio_label FROM recordings WHERE play_id = ? AND is_reference = 1 AND audio_label != \'\'',
+        (play_id,)
+    ).fetchall()
+    now = datetime.now()
+    deleted = 0
+    for row in all_labels:
+        label = row['audio_label']
+        if label in PERMANENT:
+            continue
+        # Check the earliest recording date for this label
+        rec = db.execute(
+            'SELECT MIN(created_at) as first_created FROM recordings WHERE play_id = ? AND audio_label = ? AND is_reference = 1',
+            (play_id, label)
+        ).fetchone()
+        if rec and rec['first_created']:
+            try:
+                first_time = datetime.fromisoformat(rec['first_created'])
+                age_days = (now - first_time).days
+                if age_days >= GUEST_MAX_DAYS:
+                    db.execute(
+                        'DELETE FROM recordings WHERE play_id = ? AND audio_label = ? AND is_reference = 1',
+                        (play_id, label)
+                    )
+                    deleted += 1
+            except:
+                pass
+    db.commit()
+    db.close()
+    return jsonify({'success': True, 'deleted': deleted})
+
+@app.route('/api/audio-versions/<int:play_id>')
+def api_audio_versions(play_id):
+    """List all audio versions for a play with age/days remaining info."""
+    PERMANENT = ['Amy朗读版', 'Tom朗读版']
+    GUEST_MAX_DAYS = 7
+    db = get_db()
+    recs = db.execute(
+        'SELECT audio_label, MIN(created_at) as first_created, COUNT(*) as line_count FROM recordings WHERE play_id = ? AND is_reference = 1 AND audio_label != \'\' GROUP BY audio_label ORDER BY MIN(created_at)',
+        (play_id,)
+    ).fetchall()
+    db.close()
+    now = datetime.now()
+    versions = []
+    for r in recs:
+        label = r['audio_label']
+        is_permanent = label in PERMANENT
+        days_remaining = None
+        if not is_permanent and r['first_created']:
+            try:
+                first_time = datetime.fromisoformat(r['first_created'])
+                age_days = (now - first_time).days
+                days_remaining = max(0, GUEST_MAX_DAYS - age_days)
+            except:
+                days_remaining = GUEST_MAX_DAYS
+        versions.append({
+            'label': label,
+            'is_permanent': is_permanent,
+            'days_remaining': days_remaining,
+            'line_count': r['line_count'],
+            'created_at': r['first_created']
+        })
+    return jsonify(versions)
+
+@app.route('/api/delete-audio-version/<int:play_id>', methods=['POST'])
+@admin_required
+def api_delete_audio_version(play_id):
+    """Delete a specific audio version by label."""
+    data = request.json
+    label = data.get('label', '').strip()
+    if not label:
+        return jsonify({'error': 'Label required / 需要版本名称'}), 400
+    db = get_db()
     result = db.execute(
-        f'DELETE FROM recordings WHERE play_id = ? AND is_reference = 1 AND audio_label NOT IN ({placeholders})',
-        [play_id] + ALLOWED
+        'DELETE FROM recordings WHERE play_id = ? AND audio_label = ? AND is_reference = 1',
+        (play_id, label)
     )
     deleted = result.rowcount
     db.commit()
     db.close()
-    return jsonify({'success': True, 'deleted': deleted})
+    return jsonify({'success': True, 'deleted': deleted, 'label': label})
 
 @app.route('/api/bulk-upload', methods=['POST'])
 @admin_required
@@ -686,7 +759,12 @@ def api_bulk_upload():
     # Call Whisper API for transcription with timestamps
     try:
         with open(filepath, 'rb') as f:
-            files = {'file': (filename, f, 'audio/mpeg')}
+            # Determine correct MIME type
+            import mimetypes
+            mime_type, _ = mimetypes.guess_type(filename)
+            if not mime_type or not mime_type.startswith('audio'):
+                mime_type = 'audio/mpeg' if ext in ['mp3', 'mpga'] else 'audio/wav' if ext == 'wav' else 'audio/mp4' if ext in ['m4a', 'mp4'] else 'application/octet-stream'
+            files = {'file': (filename, f, mime_type)}
             data = {
                 'model': 'whisper-1',
                 'response_format': 'verbose_json',
