@@ -256,7 +256,8 @@ const App = {
             let html = `
                 <div class="home-hero">
                     <h1 class="page-title">🎭 Bilingual Playhouse</h1>
-                    <p class="page-subtitle">Choose a story and start your bilingual adventure!<br>选择一个故事，开始你的双语冒险！</p>
+                    <p class="page-subtitle">Choose a story and start your bilingual adventure!
+选择一个故事，开始你的双语冒险！</p>
                 </div>
                 <div class="play-cards">
             `;
@@ -274,6 +275,29 @@ const App = {
                             <div class="play-card-meta">
                                 <span class="meta-badge badge-scenes">🎬 ${sceneCount} 场景</span>
                                 <span class="meta-badge badge-chars">👥 ${charCount} 角色</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            // ===== 占位卡片：补足到 4 个，让首页一行填满更美观 =====
+            // 以后有新故事直接加到 data/plays.json，占位卡会自动减少
+            const TOTAL_CARDS = 4;
+            const placeholderCount = Math.max(0, TOTAL_CARDS - plays.length);
+            const placeholderEmojis = ['✨', '🌟', '🎨', '📚'];
+            for (let i = 0; i < placeholderCount; i++) {
+                const storyNumber = plays.length + i + 1;
+                const emoji = placeholderEmojis[i % placeholderEmojis.length];
+                html += `
+                    <div class="play-card play-card-placeholder">
+                        <div class="play-card-cover">
+                            <span class="play-card-emoji">${emoji}</span>
+                        </div>
+                        <div class="play-card-body">
+                            <div class="play-card-title">Story ${storyNumber}</div>
+                            <div class="play-card-title-zh">第${storyNumber}个故事</div>
+                            <div class="play-card-meta">
+                                <span class="meta-badge badge-soon">🚧 即将上线 / Coming Soon</span>
                             </div>
                         </div>
                     </div>
@@ -341,20 +365,16 @@ const App = {
                 </div>
                 <div class="char-personality">${personality}</div>`;
 
-            // Show claim count and list
             const claimCount = char.claim_count || 0;
             const claimList = char.claimed_by_list || [];
 
-            // Claim count badge
             if (claimCount > 0) {
                 html += `<div class="claim-count-badge">${claimCount} ${lang === 'en' ? (claimCount === 1 ? 'person claimed' : 'people claimed') : '人已认领'}</div>`;
                 html += `<div class="claim-names">${claimList.map(c => `<span class="claim-name-tag">${c.player_name}</span>`).join(' ')}</div>`;
             }
 
-            // Always show claim button (unless already claimed by this user)
-            const alreadyClaimed = this.data.user && claimList.some(c => c.user_id === this.data.user.id);
+            const alreadyClaimed = this.data.user &amp;&amp; claimList.some(c => c.user_id === this.data.user.id);
             if (alreadyClaimed) {
-                // Find this user's claim to allow unclaim
                 const myClaim = claimList.find(c => c.user_id === this.data.user.id);
                 if (myClaim) {
                     html += `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
@@ -415,7 +435,7 @@ const App = {
 
     toggleScene(header) {
         const lines = header.nextElementSibling?.nextElementSibling || header.nextElementSibling;
-        if (lines && lines.classList.contains('scene-lines')) {
+        if (lines &amp;&amp; lines.classList.contains('scene-lines')) {
             lines.classList.toggle('hidden');
             const arrow = header.querySelector('.arrow');
             arrow.classList.toggle('collapsed');
@@ -436,14 +456,12 @@ const App = {
     async claim(playId, characterId) {
         const input = document.getElementById(`claim-${characterId}`);
         let name = input ? input.value.trim() : '';
-        // If logged in, use nickname
-        if (this.data.user && !name) {
+        if (this.data.user &amp;&amp; !name) {
             name = this.data.user.nickname;
         }
         if (!name) { if (input) input.focus(); return; }
 
-        // Disable button to prevent double-click
-        const btn = event && event.target ? event.target.closest('.claim-btn') : null;
+        const btn = event &amp;&amp; event.target ? event.target.closest('.claim-btn') : null;
         if (btn) { btn.disabled = true; btn.textContent = '...'; }
 
         try {
@@ -491,19 +509,16 @@ const App = {
             const res = await fetch(`/api/play/${playId}`);
             const play = await res.json();
 
-            // Fetch reference audio recordings (grouped by label)
             let refAudio = {};
             let bulkAudio = {};
             let allLabels = [];
             try {
                 const refRes = await fetch(`/api/reference-audio/${playId}`);
                 const refData = await refRes.json();
-                // Build a lookup: "characterId|lineIndex|lang" -> { label: file_path }
                 for (const [key, labels] of Object.entries(refData)) {
                     refAudio[key] = {};
                     for (const [label, rec] of Object.entries(labels)) {
-                        if (rec.bulk && rec.timestamps) {
-                            // Bulk audio entry — store in bulkAudio
+                        if (rec.bulk &amp;&amp; rec.timestamps) {
                             if (!bulkAudio[label]) {
                                 bulkAudio[label] = { file_path: rec.file_path, timestamps: {} };
                             }
@@ -517,25 +532,23 @@ const App = {
                 }
             } catch(e) { console.warn('Could not load reference audio:', e); }
 
-            // Build labels: AI label + all available reading versions
             allLabels = ['🤖 AI朗读', ...allLabels.filter(l => l !== '🤖 AI朗读')];
 
             this.data.watch = {
                 play,
                 lang: 'en',
-                mode: 'watch',        // 'watch' or 'practice'
-                characterId: null,     // selected character for practice mode
+                mode: 'watch',
+                characterId: null,
                 currentLineIdx: 0,
                 isPlaying: false,
                 isMuted: false,
-                practiceStep: 'idle',  // 'idle' | 'ai-reading' | 'waiting-user' | 'user-reading' | 'scored'
-                refAudio: refAudio,    // reference audio lookup: key -> {label: file_path}
-                allLabels: allLabels,   // all audio labels (fixed AI + server)
-                currentLabel: allLabels[0] || '',  // currently selected label
-                bulkAudio: bulkAudio    // bulk audio: label -> {file_path, timestamps: {lineIdx: {start, end}}}
+                practiceStep: 'idle',
+                refAudio: refAudio,
+                allLabels: allLabels,
+                currentLabel: allLabels[0] || '',
+                bulkAudio: bulkAudio
             };
 
-            // Flatten all lines with scene info for easy navigation
             this.data.watch.allLines = [];
             play.scenes.forEach((scene, si) => {
                 scene.lines.forEach((line, li) => {
@@ -569,13 +582,11 @@ const App = {
                     </div>
                 </div>
 
-                <!-- Mode Toggle -->
                 <div class="watch-mode-toggle">
                     <button class="watch-mode-btn active" id="modeWatch" onclick="App.setWatchMode('watch')">🎬 Watch / 观看</button>
                     <button class="watch-mode-btn" id="modePractice" onclick="App.setWatchMode('practice')">🎭 Practice / 练习</button>
                 </div>
 
-                <!-- Character selector (only in practice mode) -->
                 <div class="watch-char-select hidden" id="watchCharSelect">
                     <label>Choose your role / 选择你的角色：</label>
                     <select id="watchCharDropdown" onchange="App.selectWatchChar(this.value)">
@@ -584,14 +595,12 @@ const App = {
                     </select>
                 </div>
 
-                <!-- Language Toggle -->
                 <div class="lang-toggle" style="margin-bottom:16px">
                     <button class="lang-btn active" id="wBtnEn" onclick="App.switchWatchLang('en')">🇬🇧 English</button>
                     <button class="lang-btn" id="wBtnZh" onclick="App.switchWatchLang('zh')">🇨🇳 中文</button>
                     <button class="lang-btn" id="wBtnBi" onclick="App.switchWatchLang('bilingual')">🌐 Bilingual / 对照</button>
                 </div>
 
-                <!-- Audio Version Selector (always visible) -->
                 <div class="watch-version-select" id="watchVersionSelect" style="display:flex">
                     <label>🎵 Version / 版本：</label>
                     <select id="watchLabelDropdown" onchange="App.selectWatchLabel(this.value)">
@@ -599,8 +608,7 @@ const App = {
                     </select>
                 </div>
 
-                <!-- Bulk upload area (admin only) -->
-                ${this.data.user && this.data.user.is_admin ? `
+                ${this.data.user &amp;&amp; this.data.user.is_admin ? `
                 <div class="watch-bulk-upload" id="watchBulkUpload">
                     <div class="bulk-upload-label">📤 朗读版上传 / Reading Version Upload</div>
                     <div class="bulk-upload-row">
@@ -622,7 +630,6 @@ const App = {
                 </div>
                 ` : ''}
 
-                <!-- Current Line Display (big centered) -->
                 <div class="watch-stage" id="watchStage">
                     <div class="watch-scene-label" id="watchSceneLabel">Opening / 开场</div>
                     <div class="watch-line-card" id="watchLineCard">
@@ -635,7 +642,6 @@ const App = {
                     </div>
                 </div>
 
-                <!-- Player Controls -->
                 <div class="watch-controls">
                     <button class="watch-ctrl-btn" onclick="App.watchPrev()" title="Previous / 上一句">⏮</button>
                     <button class="watch-ctrl-btn watch-play-btn" id="watchPlayBtn" onclick="App.watchTogglePlay()" title="Play / 播放">▶</button>
@@ -643,7 +649,6 @@ const App = {
                     <button class="watch-ctrl-btn" id="watchMuteBtn" onclick="App.watchToggleMute()" title="Mute / 静音">🔊</button>
                 </div>
 
-                <!-- Practice action buttons (visible in practice mode when it's user's turn) -->
                 <div class="watch-practice-actions hidden" id="watchPracticeActions">
                     <button class="btn btn-warning btn-lg" id="watchReadBtn" onclick="App.watchAIReadLine()">
                         🔊 Listen First / 先听标准读法
@@ -661,7 +666,6 @@ const App = {
 
                 <div class="watch-upload-ref hidden" id="watchUploadRef"></div>
 
-                <!-- Progress -->
                 <div class="watch-progress">
                     <div class="watch-progress-bar" id="watchProgressBar">
                         <div class="watch-progress-fill" id="watchProgressFill" style="width:0%"></div>
@@ -669,16 +673,13 @@ const App = {
                     <div class="watch-progress-text" id="watchProgressText">0 / ${totalLines}</div>
                 </div>
 
-                <!-- Score result for practice mode -->
                 <div class="watch-score-result hidden" id="watchScoreResult"></div>
 
-                <!-- Script Navigator -->
                 <div class="watch-script-nav" id="watchScriptNav">
                     ${this.renderWatchScriptNav(play)}
                 </div>
 
-                <!-- Version Management (admin only) -->
-                ${this.data.user && this.data.user.is_admin ? `
+                ${this.data.user &amp;&amp; this.data.user.is_admin ? `
                 <div class="watch-version-manager" id="watchVersionManager">
                     <div class="version-manager-title">📋 朗读版管理 / Reading Version Manager</div>
                     <div id="versionManagerList" class="version-manager-list">
@@ -689,10 +690,8 @@ const App = {
             `;
 
             container.innerHTML = html;
-            // Show initial state
             this.showWatchCurrentLine();
-            // Auto-cleanup old audio recordings (admin only)
-            if (this.data.user && this.data.user.is_admin) {
+            if (this.data.user &amp;&amp; this.data.user.is_admin) {
                 fetch(`/api/cleanup-audio/${playId}`, { method: 'POST' }).then(() => {
                     this.loadVersionManager(playId);
                 }).catch(() => {});
@@ -717,7 +716,8 @@ const App = {
                 const char = play.characters.find(c => c.id === line.character_id);
                 const charName = char ? (lang === 'zh' ? char.name_zh : char.name_en) : '';
                 const charEmoji = char ? char.emoji : '';
-                const text = lang === 'zh' ? line.text_zh : (lang === 'bilingual' ? `${line.text_en}<br><span style="color:var(--text-secondary);font-size:0.85rem">${line.text_zh}</span>` : line.text_en);
+                const text = lang === 'zh' ? line.text_zh : (lang === 'bilingual' ? `${line.text_en}
+<span style="color:var(--text-secondary);font-size:0.85rem">${line.text_zh}</span>` : line.text_en);
                 html += `<div class="watch-nav-line" id="watchNavLine_${globalIdx}" data-line-idx="${globalIdx}" onclick="App.watchJumpLine(${globalIdx})">
                     <span class="watch-nav-char" style="color:${char ? char.color : 'inherit'}">${charEmoji} ${charName}</span>
                     <span class="watch-nav-text">${text}</span>
@@ -731,8 +731,7 @@ const App = {
 
     setWatchMode(mode) {
         const w = this.data.watch;
-        // Practice mode requires login
-        if (mode === 'practice' && !this.data.user) {
+        if (mode === 'practice' &amp;&amp; !this.data.user) {
             this.showToast('🔒 Please login to practice / 请登录后练习', 'error');
             this.showLoginModal();
             return;
@@ -748,11 +747,9 @@ const App = {
         document.getElementById('watchCharSelect').classList.toggle('hidden', mode === 'watch');
         document.getElementById('watchPlayBtn').textContent = '▶';
 
-        // Hide practice actions when switching to watch mode
         if (mode === 'watch') {
             document.getElementById('watchPracticeActions').classList.add('hidden');
         }
-        // If in practice mode, check current line
         if (mode === 'practice') {
             this.checkPracticeLine();
         }
@@ -790,15 +787,13 @@ const App = {
 
         const isMyLine = lineData.characterId === w.characterId;
         if (isMyLine) {
-            // Show practice actions
             document.getElementById('watchPracticeActions').classList.remove('hidden');
             document.getElementById('watchReadBtn').classList.remove('hidden');
             document.getElementById('watchFollowBtn').classList.add('hidden');
             document.getElementById('watchTypeBtn').classList.add('hidden');
             document.getElementById('watchNextLineBtn').classList.add('hidden');
             document.getElementById('watchPrompt').classList.remove('hidden');
-            // Show upload reference audio area (admin only)
-            if (this.data.user && this.data.user.is_admin) {
+            if (this.data.user &amp;&amp; this.data.user.is_admin) {
                 document.getElementById('watchUploadRef').classList.remove('hidden');
             } else {
                 document.getElementById('watchUploadRef').classList.add('hidden');
@@ -810,7 +805,6 @@ const App = {
             document.getElementById('watchPrompt').classList.add('hidden');
             w.practiceStep = 'idle';
         }
-        // Update card highlight
         const card = document.getElementById('watchLineCard');
         card.classList.toggle('watch-line-mine', isMyLine);
     },
@@ -822,38 +816,30 @@ const App = {
         document.getElementById('wBtnZh').classList.toggle('active', lang === 'zh');
         document.getElementById('wBtnBi').classList.toggle('active', lang === 'bilingual');
 
-        // Re-render script nav
         document.getElementById('watchScriptNav').innerHTML = this.renderWatchScriptNav(w.play);
-        // Update current line display
         this.showWatchCurrentLine();
     },
 
     watchTogglePlay() {
         const w = this.data.watch;
         if (w.isPlaying) {
-            // Pause
             w.isPlaying = false;
             if (window.speechSynthesis) window.speechSynthesis.cancel();
             document.getElementById('watchPlayBtn').textContent = '▶';
         } else {
-            // Play
             w.isPlaying = true;
             document.getElementById('watchPlayBtn').textContent = '⏸';
             this.watchPlayCurrentLine();
         }
     },
 
-    // Helper: play a line using reference audio (priority) or SpeechSynthesis (fallback)
-    // Returns a Promise that resolves when playback is done
     watchPlayAudio(lineData, lang) {
         return new Promise((resolve) => {
             const w = this.data.watch;
             const lineIndex = w.allLines.indexOf(lineData);
-            const refKey = `${lineData.characterId}|${lineIndex}|${lang === 'bilingual' ? 'en' : lang}`;
 
-            // 0. If AI朗读 is selected, skip reference audio and use TTS directly
             if (w.currentLabel === '🤖 AI朗读') {
-                if (!w.isMuted && window.speechSynthesis) {
+                if (!w.isMuted &amp;&amp; window.speechSynthesis) {
                     this.watchPlayTTS(lineData, lang).then(resolve);
                 } else {
                     const textLen = (lang === 'zh' ? lineData.textZh : lineData.textEn).length;
@@ -863,16 +849,14 @@ const App = {
                 return;
             }
 
-            // 1. Check bulk audio (full recording with timestamps)
             const bulk = w.bulkAudio[w.currentLabel];
-            if (bulk && bulk.timestamps[lineIndex] && !w.isMuted) {
+            if (bulk &amp;&amp; bulk.timestamps[lineIndex] &amp;&amp; !w.isMuted) {
                 const ts = bulk.timestamps[lineIndex];
                 const audio = new Audio(`/api/recording/${bulk.file_path}`);
                 audio.currentTime = ts.start;
                 audio.onended = () => resolve();
                 audio.onerror = () => { this.watchPlayTTS(lineData, lang).then(resolve); };
                 audio.play().catch(() => { this.watchPlayTTS(lineData, lang).then(resolve); });
-                // Stop at end time
                 const checkEnd = setInterval(() => {
                     if (audio.currentTime >= ts.end) {
                         audio.pause();
@@ -883,26 +867,18 @@ const App = {
                 return;
             }
 
-            // 2. Check if we have a reference audio for this line (with current label)
-            const refLabels = w.refAudio[refKey];  // {label: file_path}
+            const refKey = `${lineData.characterId}|${lineIndex}|${lang === 'bilingual' ? 'en' : lang}`;
+            const refLabels = w.refAudio[refKey];
             const refFile = refLabels ? (refLabels[w.currentLabel] || Object.values(refLabels)[0]) : null;
 
-            if (refFile && !w.isMuted) {
-                // Play reference audio (human recording)
+            if (refFile &amp;&amp; !w.isMuted) {
                 const audio = new Audio(`/api/recording/${refFile}`);
                 audio.onended = () => resolve();
-                audio.onerror = () => {
-                    // Fallback to TTS if audio fails
-                    this.watchPlayTTS(lineData, lang).then(resolve);
-                };
-                audio.play().catch(() => {
-                    this.watchPlayTTS(lineData, lang).then(resolve);
-                });
-            } else if (!w.isMuted && window.speechSynthesis) {
-                // Fallback to SpeechSynthesis
+                audio.onerror = () => { this.watchPlayTTS(lineData, lang).then(resolve); };
+                audio.play().catch(() => { this.watchPlayTTS(lineData, lang).then(resolve); });
+            } else if (!w.isMuted &amp;&amp; window.speechSynthesis) {
                 this.watchPlayTTS(lineData, lang).then(resolve);
             } else {
-                // Muted mode: wait based on text length
                 const textLen = (lang === 'zh' ? lineData.textZh : lineData.textEn).length;
                 const delay = Math.max(1500, textLen * 120);
                 setTimeout(resolve, delay);
@@ -910,7 +886,6 @@ const App = {
         });
     },
 
-    // Helper: play TTS for a line
     watchPlayTTS(lineData, lang) {
         return new Promise((resolve) => {
             if (!window.speechSynthesis) { resolve(); return; }
@@ -935,9 +910,7 @@ const App = {
             return;
         }
 
-        // In practice mode, check if this is the user's line
-        if (w.mode === 'practice' && w.characterId && lineData.characterId === w.characterId) {
-            // This is the user's line — stop auto-play and show practice actions
+        if (w.mode === 'practice' &amp;&amp; w.characterId &amp;&amp; lineData.characterId === w.characterId) {
             w.isPlaying = false;
             document.getElementById('watchPlayBtn').textContent = '▶';
             w.practiceStep = 'waiting-user';
@@ -949,7 +922,6 @@ const App = {
         this.showWatchCurrentLine();
         document.getElementById('watchPrompt').classList.add('hidden');
 
-        // Play audio (reference audio or TTS), then advance
         this.watchPlayAudio(lineData, w.lang).then(() => {
             if (w.isPlaying) this.watchAdvance();
         });
@@ -961,7 +933,6 @@ const App = {
             w.currentLineIdx++;
             this.watchPlayCurrentLine();
         } else {
-            // End reached — auto reset to beginning
             w.currentLineIdx = 0;
             w.isPlaying = false;
             document.getElementById('watchPlayBtn').textContent = '▶';
@@ -1041,10 +1012,8 @@ const App = {
         const w = this.data.watch;
         w.isMuted = !w.isMuted;
         document.getElementById('watchMuteBtn').textContent = w.isMuted ? '🔇' : '🔊';
-        if (w.isMuted && window.speechSynthesis) window.speechSynthesis.cancel();
+        if (w.isMuted &amp;&amp; window.speechSynthesis) window.speechSynthesis.cancel();
     },
-
-    // ===== Practice Mode: AI reads first, then user follows =====
 
     watchAIReadLine() {
         const w = this.data.watch;
@@ -1062,7 +1031,6 @@ const App = {
 
         const lineIndex = w.currentLineIdx;
         const lang = w.lang === 'bilingual' ? 'en' : w.lang;
-        const refKey = `${lineData.characterId}|${lineIndex}|${lang}`;
 
         const finishReading = () => {
             readBtn.disabled = false;
@@ -1072,16 +1040,14 @@ const App = {
             w.practiceStep = 'waiting-user';
         };
 
-        // 1. If AI朗读 selected, use TTS directly
         if (w.currentLabel === '🤖 AI朗读') {
             this.watchPlayTTS(lineData, w.lang).then(finishReading);
             w.practiceStep = 'ai-reading';
             return;
         }
 
-        // 2. Check bulk audio (full recording with timestamps)
         const bulk = w.bulkAudio[w.currentLabel];
-        if (bulk && bulk.timestamps[lineIndex]) {
+        if (bulk &amp;&amp; bulk.timestamps[lineIndex]) {
             const ts = bulk.timestamps[lineIndex];
             const audio = new Audio(`/api/recording/${bulk.file_path}`);
             audio.currentTime = ts.start;
@@ -1099,7 +1065,7 @@ const App = {
             return;
         }
 
-        // 3. Check server reference audio
+        const refKey = `${lineData.characterId}|${lineIndex}|${lang}`;
         const refLabels = w.refAudio[refKey];
         const refFile = refLabels ? (refLabels[w.currentLabel] || Object.values(refLabels)[0]) : null;
 
@@ -1125,17 +1091,14 @@ const App = {
         const nextBtn = document.getElementById('watchNextLineBtn');
         const scoreEl = document.getElementById('watchScoreResult');
 
-        // If already recording, stop it
         if (w._isFollowRecording) {
             await this.watchStopFollowRead();
             return;
         }
 
-        // Disable button briefly to prevent double-click
         followBtn.disabled = true;
         followBtn.textContent = '⏳ ...';
 
-        // Try to get microphone access
         let stream;
         try {
             stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -1153,8 +1116,6 @@ const App = {
         w._followRecognition = null;
         w._followRecognizedText = '';
 
-        // Start MediaRecorder to save audio for playback
-        // Choose a format compatible with iOS Safari (mp4/aac preferred over webm)
         let mimeType = 'audio/webm';
         if (MediaRecorder.isTypeSupported('audio/mp4')) {
             mimeType = 'audio/mp4';
@@ -1166,12 +1127,9 @@ const App = {
         const mediaRecorder = new MediaRecorder(stream, { mimeType });
         w._followMimeType = mimeType;
         w._followMediaRecorder = mediaRecorder;
-        mediaRecorder.ondataavailable = (e) => {
-            w._followAudioChunks.push(e.data);
-        };
+        mediaRecorder.ondataavailable = (e) => { w._followAudioChunks.push(e.data); };
         mediaRecorder.start();
 
-        // Also start SpeechRecognition if available (for scoring)
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRecognition) {
             const recognition = new SpeechRecognition();
@@ -1195,16 +1153,12 @@ const App = {
                 }
             };
 
-            // DON'T restart on end/error — user stops manually
             recognition.onend = () => {};
             recognition.onerror = () => {};
 
-            try { recognition.start(); } catch(e) {
-                console.warn('Cannot start recognition');
-            }
+            try { recognition.start(); } catch(e) { console.warn('Cannot start recognition'); }
         }
 
-        // Update UI
         followBtn.textContent = '⏹ Stop / 点击停止';
         followBtn.disabled = false;
         scoreEl.classList.remove('hidden');
@@ -1223,8 +1177,7 @@ const App = {
         const lang = w.lang === 'bilingual' ? 'en' : w.lang;
         const lineData = w.allLines[w.currentLineIdx];
         if (!lineData) {
-            // Defensive: line data missing, just clean up recording state
-            if (w._followMediaRecorder && w._followMediaRecorder.state !== 'inactive') {
+            if (w._followMediaRecorder &amp;&amp; w._followMediaRecorder.state !== 'inactive') {
                 try { w._followMediaRecorder.stop(); } catch(e) {}
             }
             if (w._followStream) {
@@ -1235,30 +1188,24 @@ const App = {
         }
         const expectedText = lang === 'en' ? (lineData.textEn || '') : (lineData.textZh || '');
 
-        // Save recognized text before stopping recognition
         const recognizedText = w._followRecognizedText || '';
 
-        // Stop SpeechRecognition
         if (w._followRecognition) {
             try { w._followRecognition.stop(); } catch(e) {}
             w._followRecognition = null;
         }
 
-        // Stop MediaRecorder
         return new Promise((resolve) => {
-            if (w._followMediaRecorder && w._followMediaRecorder.state !== 'inactive') {
+            if (w._followMediaRecorder &amp;&amp; w._followMediaRecorder.state !== 'inactive') {
                 w._followMediaRecorder.onstop = () => {
-                    // Stop microphone
                     if (w._followStream) {
                         w._followStream.getTracks().forEach(t => t.stop());
                     }
 
-                    // Create audio blob for playback
                     const blobType = w._followMimeType || 'audio/webm';
                     const blob = new Blob(w._followAudioChunks, { type: blobType });
                     const url = URL.createObjectURL(blob);
 
-                    // Show playback + score area
                     scoreEl.classList.remove('hidden');
                     scoreEl.innerHTML = `
                         <div class="watch-playback">
@@ -1271,9 +1218,8 @@ const App = {
                     followBtn.textContent = '🎤 跟读 / Read Again';
                     nextBtn.classList.remove('hidden');
 
-                    // Auto-score if we have recognized text
                     const scoreArea = document.getElementById('watchScoreArea');
-                    if (recognizedText && recognizedText.length > 3) {
+                    if (recognizedText &amp;&amp; recognizedText.length > 3) {
                         this.watchScoreText(recognizedText, expectedText, lang, lineData, true);
                     } else {
                         scoreArea.innerHTML = `
@@ -1309,7 +1255,7 @@ const App = {
                 : `大声朗读这句话，然后输入你说的内容：\n\n"${expectedText}"`
         );
 
-        if (userInput && userInput.trim()) {
+        if (userInput &amp;&amp; userInput.trim()) {
             await this.watchScoreText(userInput.trim(), expectedText, lang, lineData);
             nextBtn.classList.remove('hidden');
             w.practiceStep = 'scored';
@@ -1319,7 +1265,6 @@ const App = {
     async watchScoreText(recognizedText, expectedText, lang, lineData) {
         const w = this.data.watch;
         const scoreEl = document.getElementById('watchScoreResult');
-        // If there's a score area inside (from recording playback), put score there
         const scoreArea = document.getElementById('watchScoreArea');
         const targetEl = scoreArea || scoreEl;
 
@@ -1364,7 +1309,6 @@ const App = {
         const hintEl = document.getElementById('watchUploadHint');
         hintEl.textContent = '⏳ Uploading... / 上传中...';
 
-        // Ask for audio label
         const audioLabel = prompt('Enter a label for this recording / 请输入录音标签：\n(e.g. Amy标准版, Tom练习版)', '标准读音');
         if (!audioLabel || !audioLabel.trim()) {
             hintEl.textContent = '❌ Label required / 需要标签名';
@@ -1390,7 +1334,6 @@ const App = {
                 const refKey = `${lineData.characterId}|${w.currentLineIdx}|${lang}`;
                 if (!w.refAudio[refKey]) w.refAudio[refKey] = {};
                 w.refAudio[refKey][audioLabel.trim()] = data.filename;
-                // Update labels list
                 if (!w.allLabels.includes(audioLabel.trim())) {
                     w.allLabels.push(audioLabel.trim());
                 }
@@ -1407,7 +1350,6 @@ const App = {
         }
     },
 
-    // Bulk upload: upload full audio, AI splits it into lines
     async bulkUpload(inputEl) {
         const w = this.data.watch;
         const file = inputEl.files[0];
@@ -1424,7 +1366,6 @@ const App = {
             inputEl.value = '';
             return;
         }
-        // Auto-append 朗读版 if not present
         if (!label.endsWith('朗读版')) {
             label = label + '朗读版';
         }
@@ -1444,9 +1385,7 @@ const App = {
             if (res.ok) {
                 hintEl.textContent = `✅ 成功！${data.matched_lines}/${data.total_lines} 句匹配成功 / ${data.matched_lines}/${data.total_lines} lines matched`;
                 hintEl.style.color = 'var(--success)';
-                // Reload reference audio data
                 await this.reloadWatchAudio();
-                // Add label and switch to it
                 if (!w.allLabels.includes(label)) {
                     w.allLabels.push(label);
                 }
@@ -1466,6 +1405,7 @@ const App = {
             inputEl.value = '';
         }
     },
+
     async reloadWatchAudio() {
         const w = this.data.watch;
         try {
@@ -1476,7 +1416,7 @@ const App = {
             let labels = ['🤖 AI朗读'];
             for (const [key, labelMap] of Object.entries(refData)) {
                 for (const [label, rec] of Object.entries(labelMap)) {
-                    if (rec.bulk && rec.timestamps) {
+                    if (rec.bulk &amp;&amp; rec.timestamps) {
                         if (!w.bulkAudio[label]) {
                             w.bulkAudio[label] = { file_path: rec.file_path, timestamps: {} };
                         }
@@ -1555,20 +1495,16 @@ const App = {
         const char = w.play.characters.find(c => c.id === lineData.characterId);
         const lang = w.lang;
 
-        // Scene label
         const sceneLabel = lang === 'zh' ? lineData.sceneTitleZh : (lang === 'bilingual' ? `${lineData.sceneTitleEn} / ${lineData.sceneTitleZh}` : lineData.sceneTitleEn);
         document.getElementById('watchSceneLabel').textContent = lineData.sceneNumber > 0 ? `Scene ${lineData.sceneNumber}: ${sceneLabel}` : sceneLabel;
 
-        // Character
         document.getElementById('watchCharAvatar').textContent = char ? char.emoji : '🎭';
         document.getElementById('watchCharName').textContent = char ? (lang === 'zh' ? char.name_zh : `${char.name_en} (${char.name_zh})`) : '';
         document.getElementById('watchCharName').style.color = char ? char.color : 'inherit';
 
-        // Line text
         const mainText = lang === 'zh' ? lineData.textZh : lineData.textEn;
         document.getElementById('watchLineText').textContent = mainText;
 
-        // Alt text (bilingual mode)
         const altEl = document.getElementById('watchLineTextAlt');
         if (lang === 'bilingual') {
             altEl.textContent = lang === 'zh' ? lineData.textEn : lineData.textZh;
@@ -1577,7 +1513,6 @@ const App = {
             altEl.classList.add('hidden');
         }
 
-        // Stage direction
         const sdEl = document.getElementById('watchStageDir');
         const sd = lang === 'zh' ? lineData.stageDirZh : (lang === 'bilingual' ? `${lineData.stageDirEn} / ${lineData.stageDirZh}` : lineData.stageDirEn);
         if (sd) {
@@ -1587,39 +1522,33 @@ const App = {
             sdEl.classList.add('hidden');
         }
 
-        // Card highlight in practice mode
         const card = document.getElementById('watchLineCard');
-        if (w.mode === 'practice' && w.characterId && lineData.characterId === w.characterId) {
+        if (w.mode === 'practice' &amp;&amp; w.characterId &amp;&amp; lineData.characterId === w.characterId) {
             card.classList.add('watch-line-mine');
         } else {
             card.classList.remove('watch-line-mine');
         }
 
-        // Update progress
         const total = w.allLines.length;
         const pct = Math.round(((w.currentLineIdx + 1) / total) * 100);
         document.getElementById('watchProgressFill').style.width = pct + '%';
         document.getElementById('watchProgressText').textContent = `${w.currentLineIdx + 1} / ${total}`;
 
-        // Highlight in script nav
         this.highlightWatchCurrentLine();
     },
 
     highlightWatchCurrentLine() {
         const w = this.data.watch;
-        // Remove all highlights
         document.querySelectorAll('.watch-nav-line.active').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.watch-nav-line.is-my-line').forEach(el => el.classList.remove('is-my-line'));
 
-        // Add highlight to current line
         const navLine = document.getElementById(`watchNavLine_${w.currentLineIdx}`);
         if (navLine) {
             navLine.classList.add('active');
             navLine.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
 
-        // In practice mode, mark the user's lines
-        if (w.mode === 'practice' && w.characterId) {
+        if (w.mode === 'practice' &amp;&amp; w.characterId) {
             w.allLines.forEach((line, idx) => {
                 if (line.characterId === w.characterId) {
                     const el = document.getElementById(`watchNavLine_${idx}`);
@@ -1639,7 +1568,6 @@ const App = {
 
     // ========== Practice Page ==========
     async renderPractice(container, playId, characterId) {
-        // Check login first
         if (!this.data.user) {
             container.innerHTML = `
                 <div class="practice-lock">
@@ -1680,7 +1608,6 @@ const App = {
             const play = await (await fetch(`/api/play/${playId}`)).json();
             const playTitle = play.title_en;
 
-            // Separate recordings by language
             const enRecs = recordings.filter(r => r.lang === 'en');
             const zhRecs = recordings.filter(r => r.lang === 'zh');
 
@@ -1706,7 +1633,6 @@ const App = {
                     ${this.renderPracticeLines(linesData, 'en')}
                 </div>
 
-                <!-- Recording Section -->
                 <div class="recording-section" id="recordingSection">
                     <h3 class="section-title" style="margin-top:0">🎤 Recordings / 录音</h3>
 
@@ -1736,9 +1662,8 @@ const App = {
                     </div>
                 </div>
 
-                <!-- Practice & Score Section -->
                 <div class="practice-section">
-                    <h3 class="section-title">🎯 Practice & Score / 练习与评分</h3>
+                    <h3 class="section-title">🎯 Practice &amp; Score / 练习与评分</h3>
                     <p class="practice-hint">Read your lines aloud. The computer will score your pronunciation. You need <strong>80 points</strong> or higher to join the performance!</p>
                     <p class="practice-hint">大声朗读你的台词，电脑会给你打分。需要<strong>80分</strong>以上才能参加演出！</p>
 
@@ -1759,7 +1684,6 @@ const App = {
     },
 
     renderPracticeLines(data, lang) {
-        const charId = data.character?.id;
         let html = '';
         for (const scene of data.scenes) {
             const stageDir = scene.stage_direction;
@@ -1853,7 +1777,6 @@ const App = {
         const bilingualData = this.data.practice.bilingualData;
         const { playId, characterId } = this.data.practice;
 
-        // Find the line
         let line = null;
         let idx = 0;
         for (const scene of bilingualData.scenes) {
@@ -1867,16 +1790,14 @@ const App = {
 
         const expectedText = lang === 'en' ? line.text_en : line.text_zh;
 
-        // Check for speech recognition support
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognition) {
-            // Fallback: simple text input scoring
             const userInput = prompt(
                 lang === 'en'
                     ? `Read this line and type what you said:\n"${expectedText}"`
                     : `朗读这句话，然后输入你说的内容：\n"${expectedText}"`
             );
-            if (userInput && userInput.trim()) {
+            if (userInput &amp;&amp; userInput.trim()) {
                 const res = await fetch('/api/score', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1895,7 +1816,6 @@ const App = {
             return;
         }
 
-        // Use Web Speech API
         const recognition = new SpeechRecognition();
         recognition.lang = lang === 'en' ? 'en-US' : 'zh-CN';
         recognition.interimResults = false;
@@ -2027,8 +1947,7 @@ const App = {
         return html;
     },
 
-    // ========== Recording ==========
-    async startRecordingFor(lang) {
+    startRecordingFor(lang) {
         this.currentRecordingLang = lang;
         const btnId = lang === 'en' ? 'recordBtnEn' : 'recordBtnZh';
         const hintId = lang === 'en' ? 'recordingHintEn' : 'recordingHintZh';
@@ -2062,12 +1981,11 @@ const App = {
     },
 
     stopRecording() {
-        if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+        if (this.mediaRecorder &amp;&amp; this.mediaRecorder.state !== 'inactive') {
             this.mediaRecorder.stop();
         }
         this.isRecording = false;
 
-        // Reset both buttons
         ['En', 'Zh'].forEach(suffix => {
             const btn = document.getElementById(`recordBtn${suffix}`);
             const hint = document.getElementById(`recordingHint${suffix}`);
@@ -2090,7 +2008,6 @@ const App = {
             const res = await fetch('/api/record', { method: 'POST', body: formData });
             if (res.ok) {
                 this.showToast(`✅ ${lang === 'en' ? 'English' : 'Chinese'} recording saved! / ${lang === 'en' ? '英文' : '中文'}录音已保存！`, 'success');
-                // Refresh recordings
                 const recsRes = await fetch(`/api/recordings/${playId}/${characterId}?lang=${lang}`);
                 const recordings = await recsRes.json();
                 const listId = lang === 'en' ? 'recordingListEn' : 'recordingListZh';
@@ -2103,7 +2020,6 @@ const App = {
 
     // ========== Admin Dashboard ==========
     async renderAdmin(container) {
-        // Check admin access
         if (!this.data.user || !this.data.user.is_admin) {
             container.innerHTML = `
                 <div class="practice-lock">
@@ -2129,9 +2045,8 @@ const App = {
             let html = `
                 <a class="back-link" onclick="App.navigate('/')">← Home / 返回首页</a>
                 <h1 class="page-title">👑 Admin Dashboard / 管理后台</h1>
-                <p class="page-subtitle">Character assignment & user statistics / 角色分配与用户统计</p>
+                <p class="page-subtitle">Character assignment &amp; user statistics / 角色分配与用户统计</p>
 
-                <!-- Summary Cards -->
                 <div class="admin-summary">
                     <div class="admin-summary-card">
                         <div class="num">${data.total_users}</div>
@@ -2142,84 +2057,60 @@ const App = {
                         <div class="label">Claims / 认领</div>
                     </div>
                 </div>
-
-                <!-- Per-Play Stats -->
             `;
 
             for (const play of data.plays) {
                 html += `
                     <div class="admin-stats">
                         <h3>${play.title_en} / ${play.title_zh}</h3>
-                        <div style="overflow-x:auto">
                         <table class="admin-table">
                             <thead>
                                 <tr>
-                                    <th>Role / 角色</th>
-                                    <th>Count / 人数</th>
+                                    <th>Character / 角色</th>
                                     <th>Claimed by / 认领人</th>
                                 </tr>
                             </thead>
                             <tbody>
                 `;
                 for (const char of play.characters) {
-                    const count = char.claimed_by && char.claimed_by.length > 0 ? char.claimed_by.length : 0;
-                    const claimList = char.claimed_by && char.claimed_by.length > 0
-                        ? char.claimed_by.map(c => {
-                            let info = `<strong>${c.user_nickname || c.player_name}</strong>`;
-                            const details = [];
-                            if (c.user_age) details.push(`Age ${c.user_age}`);
-                            if (c.user_room) details.push(`Room ${c.user_room}`);
-                            if (details.length) info += ` <span style="color:var(--text-secondary);font-size:0.85rem">(${details.join(', ')})</span>`;
-                            return info;
-                        }).join('<br>')
-                        : '<span style="color:var(--text-secondary);font-style:italic">—</span>';
+                    const claims = char.claimed_by || [];
                     html += `<tr>
-                        <td>${char.emoji} ${char.character_name_en} <span style="color:var(--text-secondary)">(${char.character_name_zh})</span></td>
-                        <td style="text-align:center;font-weight:700;${count === 0 ? 'color:var(--danger)' : count === 1 ? 'color:var(--warning)' : 'color:var(--success)'}">${count}</td>
-                        <td>${claimList}</td>
-                    </tr>`;
-                }
-                html += `</tbody></table></div></div>`;
-            }
-
-            // User list
-            if (data.users.length > 0) {
-                html += `
-                    <div class="admin-stats">
-                        <h3>👥 All Users / 所有用户</h3>
-                        <table class="admin-table">
-                            <thead>
-                                <tr>
-                                    <th>Nickname / 昵称</th>
-                                    <th>Age / 年龄</th>
-                                    <th>Room / 房间</th>
-                                    <th>Admin</th>
-                                    <th>Registered / 注册时间</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                `;
-                for (const u of data.users) {
-                    const date = new Date(u.created_at).toLocaleDateString();
-                    html += `<tr>
-                        <td><strong>${u.nickname}</strong></td>
-                        <td>${u.age || '-'}</td>
-                        <td>${u.room || '-'}</td>
-                        <td>${u.is_admin ? '👑' : ''}</td>
-                        <td>${date}</td>
+                        <td>${char.emoji} ${char.character_name_en} (${char.character_name_zh})</td>
+                        <td>${claims.length > 0
+                            ? claims.map(c => `<div class="char-claim-card"><div class="claim-info"><div class="claim-name">${c.player_name}</div><div class="claim-detail">${c.user_age ? `Age ${c.user_age}` : ''} ${c.user_room ? `· ${c.user_room}` : ''}</div></div></div>`).join('')
+                            : '<span class="char-claim-unclaimed">Unclaimed / 未认领</span>'}
+                        </td>
                     </tr>`;
                 }
                 html += `</tbody></table></div>`;
             }
 
+            html += `
+                <div class="admin-stats">
+                    <h3>👥 All Users / 所有用户</h3>
+                    <table class="admin-table">
+                        <thead>
+                            <tr><th>Nickname / 昵称</th><th>Age / 年龄</th><th>Room / 房间</th><th>Admin</th><th>Joined / 注册时间</th></tr>
+                        </thead>
+                        <tbody>
+                            ${data.users.map(u => `<tr>
+                                <td>${u.nickname}</td>
+                                <td>${u.age || '-'}</td>
+                                <td>${u.room || '-'}</td>
+                                <td>${u.is_admin ? '👑' : ''}</td>
+                                <td>${new Date(u.created_at).toLocaleDateString()}</td>
+                            </tr>`).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
             container.innerHTML = html;
         } catch(e) {
-            console.error('Admin page error:', e);
             container.innerHTML = `<div class="empty-state"><div class="emoji">😢</div><p>Failed to load: ${e.message}</p></div>`;
         }
     },
 
-    // ========== Toast ==========
     showToast(message, type = 'success') {
         const existing = document.querySelector('.toast');
         if (existing) existing.remove();
@@ -2228,7 +2119,9 @@ const App = {
         toast.textContent = message;
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 3000);
-    }
+    },
 };
 
-document.addEventListener('DOMContentLoaded', () => App.init());
+document.addEventListener('DOMContentLoaded', () => {
+    App.init();
+});
