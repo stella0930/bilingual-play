@@ -1,4 +1,4 @@
-/* ========== Reset & Base ========== */
+/* ========== Reset &amp; Base ========== */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
@@ -136,7 +136,6 @@ body {
     opacity: 1;
 }
 
-/* Card top: big emoji area */
 .play-card-cover {
     display: flex;
     align-items: center;
@@ -157,7 +156,6 @@ body {
     transform: scale(1.12);
 }
 
-/* Card body: title + meta */
 .play-card-body {
     padding: 20px;
     flex: 1;
@@ -199,6 +197,46 @@ body {
 
 .badge-scenes { background: #EEF2FF; color: #6366F1; }
 .badge-chars { background: #FEF3C7; color: #D97706; }
+.badge-soon { background: #F1F5F9; color: #94A3B8; }
+
+/* ── Placeholder card (Coming Soon / 即将上线) ── */
+.play-card-placeholder {
+    cursor: default;
+    opacity: 0.72;
+    border: 2px dashed var(--border);
+    background: #FAFBFC;
+}
+
+.play-card-placeholder:hover {
+    transform: none;
+    border-color: var(--border);
+}
+
+.play-card-placeholder:hover::after {
+    opacity: 0;
+}
+
+.play-card-placeholder .play-card-cover {
+    background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 50%, #E2E8F0 100%);
+}
+
+.play-card-placeholder .play-card-emoji {
+    filter: none;
+    animation: placeholderShimmer 2.5s ease-in-out infinite;
+}
+
+@keyframes placeholderShimmer {
+    0%, 100% { opacity: 0.85; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.08); }
+}
+
+.play-card-placeholder .play-card-title {
+    color: var(--text-secondary);
+}
+
+.play-card-placeholder .play-card-title-zh {
+    color: #94A3B8;
+}
 
 /* ========== Play Detail Page ========== */
 .play-header {
@@ -229,7 +267,6 @@ body {
     margin: 0 auto;
 }
 
-/* Language Toggle */
 .lang-toggle {
     display: flex;
     justify-content: center;
@@ -258,16 +295,6 @@ body {
 .lang-btn:hover:not(.active) {
     border-color: var(--primary);
     color: var(--primary);
-}
-
-/* Characters Grid */
-.section-title {
-    font-size: 1.3rem;
-    font-weight: 700;
-    margin: 24px 0 12px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
 }
 
 .characters-grid {
@@ -509,7 +536,6 @@ body {
     font-weight: 700;
 }
 
-/* Chorus line */
 .line-chorus {
     text-align: center;
     font-weight: 700;
@@ -587,7 +613,6 @@ body {
     border-radius: 8px;
 }
 
-/* Recording */
 .recording-section {
     margin-top: 24px;
     background: var(--card-bg);
@@ -678,7 +703,6 @@ body {
     font-size: 0.8rem;
 }
 
-/* ========== Back link ========== */
 .back-link {
     display: inline-flex;
     align-items: center;
@@ -695,7 +719,6 @@ body {
     text-decoration: underline;
 }
 
-/* ========== Modal ========== */
 .modal-overlay {
     position: fixed;
     inset: 0;
@@ -740,7 +763,6 @@ body {
     justify-content: flex-end;
 }
 
-/* ========== Empty state ========== */
 .empty-state {
     text-align: center;
     padding: 40px;
@@ -752,7 +774,6 @@ body {
     margin-bottom: 12px;
 }
 
-/* ========== Toast ========== */
 .toast {
     position: fixed;
     bottom: 24px;
@@ -782,7 +803,6 @@ body {
     to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
-/* ========== Recording lang tabs ========== */
 .recording-lang-tabs {
     display: flex;
     gap: 8px;
@@ -812,7 +832,6 @@ body {
     color: var(--primary);
 }
 
-/* ========== Line translation ========== */
 .line-translation {
     color: var(--text-secondary);
     font-size: 0.85rem;
@@ -825,7 +844,6 @@ body {
     border-left-color: var(--success) !important;
 }
 
-/* ========== Practice & Score Section ========== */
 .practice-section {
     margin-top: 32px;
     background: var(--card-bg);
@@ -894,7 +912,6 @@ body {
     min-width: 80px;
 }
 
-/* Score badges */
 .score-history {
     background: var(--bg);
     border-radius: var(--radius);
@@ -1001,7 +1018,6 @@ body {
     font-weight: 500;
 }
 
-/* Mode toggle */
 .watch-mode-toggle {
     display: flex;
     justify-content: center;
@@ -1032,7 +1048,6 @@ body {
     color: var(--primary);
 }
 
-/* Character select */
 .watch-char-select {
     text-align: center;
     margin-bottom: 16px;
@@ -1066,7 +1081,6 @@ body {
     display: none !important;
 }
 
-/* Stage (current line display) */
 .watch-stage {
     background: linear-gradient(135deg, #1E293B 0%, #334155 100%);
     border-radius: var(--radius-lg);
@@ -1170,7 +1184,6 @@ body {
     50% { box-shadow: 0 0 0 10px rgba(245,158,11,0); }
 }
 
-/* Controls */
 .watch-controls {
     display: flex;
     justify-content: center;
@@ -1227,7 +1240,6 @@ body {
     border-color: #059669;
 }
 
-/* Progress */
 .watch-progress {
     display: flex;
     align-items: center;
@@ -1258,7 +1270,6 @@ body {
     text-align: right;
 }
 
-/* Score result */
 .watch-score-result {
     text-align: center;
     padding: 12px;
@@ -1268,7 +1279,6 @@ body {
     border: 1px solid var(--border);
 }
 
-/* Script Navigator */
 .watch-script-nav {
     background: var(--card-bg);
     border-radius: var(--radius-lg);
@@ -1350,7 +1360,6 @@ body {
     font-weight: 600;
 }
 
-/* Practice mode action buttons */
 .watch-practice-actions {
     display: flex;
     justify-content: center;
@@ -1380,7 +1389,6 @@ body {
     cursor: not-allowed;
 }
 
-/* Upload reference audio area in watch page */
 .watch-upload-ref {
     text-align: center;
     margin: 12px 0;
@@ -1390,7 +1398,6 @@ body {
     border: 1px dashed var(--success);
 }
 
-/* Bulk upload area */
 .watch-bulk-upload {
     text-align: center;
     margin: 12px 0;
@@ -1466,7 +1473,6 @@ body {
     color: var(--text-secondary);
 }
 
-/* ========== Audio Version Selector ========== */
 .watch-version-select {
     display: flex;
     align-items: center;
@@ -1500,7 +1506,6 @@ body {
     border-color: var(--primary);
 }
 
-/* Recording playback area */
 .watch-playback {
     margin-bottom: 12px;
     padding: 12px;
@@ -1520,7 +1525,6 @@ body {
     padding: 8px 0;
 }
 
-/* ========== Nav Auth ========== */
 .nav-auth {
     margin-left: auto;
     display: flex;
@@ -1592,7 +1596,6 @@ body {
     color: white;
 }
 
-/* ========== Practice Lock Overlay ========== */
 .practice-lock {
     text-align: center;
     padding: 60px 20px;
@@ -1617,7 +1620,6 @@ body {
     margin-bottom: 20px;
 }
 
-/* ========== Auth Modal Fields ========== */
 .modal .form-group {
     margin-bottom: 14px;
 }
@@ -1664,7 +1666,6 @@ body {
     font-weight: 700;
 }
 
-/* ========== Admin Dashboard ========== */
 .admin-stats {
     background: var(--card-bg);
     border-radius: var(--radius-lg);
@@ -1778,7 +1779,6 @@ body {
     }
 }
 
-/* ===== Version Manager ===== */
 .watch-version-manager {
     margin-top: 24px;
     padding: 16px;
@@ -1786,17 +1786,20 @@ body {
     border: 1px solid #dde0f0;
     border-radius: 12px;
 }
+
 .version-manager-title {
     font-size: 1rem;
     font-weight: 700;
     margin-bottom: 12px;
     color: #5566cc;
 }
+
 .version-manager-list {
     display: flex;
     flex-direction: column;
     gap: 8px;
 }
+
 .version-manager-item {
     display: flex;
     align-items: center;
@@ -1807,38 +1810,44 @@ body {
     border: 1px solid #e8e8e8;
     flex-wrap: wrap;
 }
+
 .version-label {
     font-weight: 600;
     min-width: 120px;
 }
+
 .version-lines {
     color: #888;
     font-size: 0.85rem;
 }
+
 .version-badge {
     padding: 2px 10px;
     border-radius: 12px;
     font-size: 0.8rem;
     font-weight: 600;
 }
+
 .version-permanent {
     background: #e8f5e9;
     color: #2e7d32;
 }
+
 .version-guest {
     background: #fff3e0;
     color: #e65100;
 }
+
 .version-delete-btn {
     margin-left: auto;
 }
+
 .version-manager-empty, .version-manager-loading, .version-manager-error {
     color: #999;
     font-size: 0.9rem;
     padding: 8px;
 }
 
-/* Bulk label input styling */
 #bulkLabelInput {
     padding: 6px 10px;
     border: 1px solid #ccc;
