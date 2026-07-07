@@ -500,14 +500,17 @@ const App = {
                 const refData = await refRes.json();
                 // Build a lookup: "characterId|lineIndex|lang" -> { label: file_path }
                 for (const [key, labels] of Object.entries(refData)) {
+                    // key format: "characterId|lineIndex|lang"
+                    const keyLang = key.split('|')[2] || 'en';
                     refAudio[key] = {};
                     for (const [label, rec] of Object.entries(labels)) {
                         if (rec.bulk && rec.timestamps) {
-                            // Bulk audio entry — store in bulkAudio
-                            if (!bulkAudio[label]) {
-                                bulkAudio[label] = { file_path: rec.file_path, timestamps: {} };
+                            // Bulk audio entry — store in bulkAudio with lang dimension
+                            const bulkKey = `${label}|${keyLang}`;
+                            if (!bulkAudio[bulkKey]) {
+                                bulkAudio[bulkKey] = { file_path: rec.file_path, timestamps: {} };
                             }
-                            bulkAudio[label].timestamps[rec.line_index] = rec.timestamps;
+                            bulkAudio[bulkKey].timestamps[rec.line_index] = rec.timestamps;
                             if (!allLabels.includes(label)) allLabels.push(label);
                         } else {
                             refAudio[key][label] = rec.file_path;
@@ -532,7 +535,7 @@ const App = {
                 refAudio: refAudio,    // reference audio lookup: key -> {label: file_path}
                 allLabels: allLabels,   // all audio labels (fixed AI + server)
                 currentLabel: allLabels[0] || '',  // currently selected label
-                bulkAudio: bulkAudio    // bulk audio: label -> {file_path, timestamps: {lineIdx: {start, end}}}
+                bulkAudio: bulkAudio    // bulk audio: "label|lang" -> {file_path, timestamps: {lineIdx: {start, end}}}
             };
 
             // Flatten all lines with scene info for easy navigation
@@ -864,7 +867,9 @@ const App = {
             }
 
             // 1. Check bulk audio (full recording with timestamps)
-            const bulk = w.bulkAudio[w.currentLabel];
+            // Use lang dimension: bulkAudio key is "label|lang"
+            const bulkLang = lang === 'bilingual' ? 'en' : lang;
+            const bulk = w.bulkAudio[`${w.currentLabel}|${bulkLang}`];
             if (bulk && bulk.timestamps[lineIndex] && !w.isMuted) {
                 const ts = bulk.timestamps[lineIndex];
                 const audio = new Audio(`/api/recording/${bulk.file_path}`);
@@ -1080,7 +1085,8 @@ const App = {
         }
 
         // 2. Check bulk audio (full recording with timestamps)
-        const bulk = w.bulkAudio[w.currentLabel];
+        // Use lang dimension: bulkAudio key is "label|lang"
+        const bulk = w.bulkAudio[`${w.currentLabel}|${lang}`];
         if (bulk && bulk.timestamps[lineIndex]) {
             const ts = bulk.timestamps[lineIndex];
             const audio = new Audio(`/api/recording/${bulk.file_path}`);
@@ -1464,12 +1470,15 @@ const App = {
             w.bulkAudio = {};
             let labels = ['🤖 AI朗读'];
             for (const [key, labelMap] of Object.entries(refData)) {
+                // key format: "characterId|lineIndex|lang"
+                const keyLang = key.split('|')[2] || 'en';
                 for (const [label, rec] of Object.entries(labelMap)) {
                     if (rec.bulk && rec.timestamps) {
-                        if (!w.bulkAudio[label]) {
-                            w.bulkAudio[label] = { file_path: rec.file_path, timestamps: {} };
+                        const bulkKey = `${label}|${keyLang}`;
+                        if (!w.bulkAudio[bulkKey]) {
+                            w.bulkAudio[bulkKey] = { file_path: rec.file_path, timestamps: {} };
                         }
-                        w.bulkAudio[label].timestamps[rec.line_index] = rec.timestamps;
+                        w.bulkAudio[bulkKey].timestamps[rec.line_index] = rec.timestamps;
                         if (!labels.includes(label)) labels.push(label);
                     } else {
                         if (!w.refAudio[key]) w.refAudio[key] = {};
