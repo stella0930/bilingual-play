@@ -1111,13 +1111,14 @@ body {
     display: none !important;
 }
 
+/* Card mode: wrapper sticks to top when scrolling */
 .watch-stage-wrapper {
     position: sticky;
-    top: 64px;
+    top: 56px;
     z-index: 50;
     background: var(--bg);
-    padding-bottom: 8px;
-    margin-bottom: 16px;
+    padding: 8px 0;
+    margin-bottom: 8px;
 }
 
 .watch-stage-wrapper.hidden {
@@ -1127,12 +1128,12 @@ body {
 .watch-stage {
     background: linear-gradient(135deg, #1E293B 0%, #334155 100%);
     border-radius: var(--radius-lg);
-    padding: 24px 20px;
+    padding: 20px 16px;
     text-align: center;
     color: white;
-    margin-bottom: 12px;
-    min-height: 180px;
-    max-height: 50vh;
+    margin-bottom: 8px;
+    max-height: calc(100vh - 280px);
+    min-height: 120px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
@@ -1170,7 +1171,7 @@ body {
     background: rgba(255,255,255,0.08);
     border: 2px solid rgba(255,255,255,0.15);
     border-radius: var(--radius);
-    padding: 32px 28px;
+    padding: 20px 20px;
     max-width: 600px;
     width: 100%;
     backdrop-filter: blur(4px);
@@ -1184,22 +1185,22 @@ body {
 }
 
 .watch-char-avatar {
-    font-size: 2.5rem;
-    margin-bottom: 8px;
+    font-size: 2rem;
+    margin-bottom: 4px;
 }
 
 .watch-char-name {
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 700;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
     opacity: 0.9;
 }
 
 .watch-line-text {
-    font-size: 1.5rem;
+    font-size: 1.3rem;
     font-weight: 700;
-    line-height: 1.5;
-    margin-bottom: 8px;
+    line-height: 1.4;
+    margin-bottom: 6px;
 }
 
 .watch-line-text-alt {

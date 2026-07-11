@@ -708,6 +708,13 @@ const App = {
             container.innerHTML = html;
             // Show initial state
             this.showWatchCurrentLine();
+            // Auto-scroll to the stage wrapper so card + controls are visible
+            setTimeout(() => {
+                const wrapper = document.getElementById('watchStageWrapper');
+                if (wrapper) {
+                    wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }, 100);
             // Auto-cleanup old audio recordings (admin only)
             if (this.data.user && this.data.user.is_admin) {
                 fetch(`/api/cleanup-audio/${playId}`, { method: 'POST' }).then(() => {
@@ -798,6 +805,10 @@ const App = {
             wrapper.classList.remove('hidden');
             scroll.classList.remove('active');
             scriptNav.style.display = '';
+            // Scroll to wrapper so controls are visible
+            setTimeout(() => {
+                wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 50);
         } else {
             // Scroll mode: hide card stage but keep controls+progress visible
             // Move controls outside wrapper into a fixed position
