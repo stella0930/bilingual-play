@@ -1018,6 +1018,36 @@ body {
     font-weight: 500;
 }
 
+.watch-view-toggle {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.watch-view-btn {
+    padding: 8px 20px;
+    border-radius: 20px;
+    border: 2px solid var(--border);
+    background: var(--card-bg);
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+}
+
+.watch-view-btn.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.watch-view-btn:hover:not(.active) {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
 .watch-mode-toggle {
     display: flex;
     justify-content: center;
@@ -1096,6 +1126,16 @@ body {
     box-shadow: var(--shadow-lg);
     position: relative;
     overflow: hidden;
+}
+
+.watch-stage.sticky {
+    position: sticky;
+    top: 80px;
+    z-index: 50;
+}
+
+.watch-stage.hidden {
+    display: none !important;
 }
 
 .watch-stage::before {
@@ -1277,6 +1317,94 @@ body {
     border-radius: var(--radius);
     margin-bottom: 16px;
     border: 1px solid var(--border);
+}
+
+.watch-scroll-script {
+    background: var(--card-bg);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    margin-bottom: 16px;
+    display: none;
+}
+
+.watch-scroll-script.active {
+    display: block;
+}
+
+.watch-scroll-scene {
+    border-bottom: 1px solid var(--border);
+}
+
+.watch-scroll-scene:last-child {
+    border-bottom: none;
+}
+
+.watch-scroll-scene-title {
+    padding: 12px 16px;
+    background: var(--primary-light);
+    font-weight: 700;
+    font-size: 0.95rem;
+    position: sticky;
+    top: 72px;
+    z-index: 40;
+}
+
+.watch-scroll-line {
+    display: flex;
+    gap: 12px;
+    padding: 14px 16px;
+    border-left: 4px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+    align-items: flex-start;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.watch-scroll-line:hover {
+    background: var(--bg);
+}
+
+.watch-scroll-line.active {
+    background: var(--primary-light);
+    border-left-color: var(--primary);
+}
+
+.watch-scroll-line.is-my-line {
+    background: var(--warning-light);
+    border-left-color: var(--warning);
+}
+
+.watch-scroll-line.active.is-my-line {
+    background: #FEF3C7;
+    border-left-color: var(--warning);
+}
+
+.watch-scroll-line-char {
+    font-weight: 700;
+    font-size: 0.85rem;
+    min-width: 80px;
+    flex-shrink: 0;
+    padding-top: 2px;
+}
+
+.watch-scroll-line-text {
+    flex: 1;
+    font-size: 1.05rem;
+    line-height: 1.5;
+}
+
+.watch-scroll-line-alt {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+.watch-scroll-line-dir {
+    font-style: italic;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-top: 4px;
 }
 
 .watch-script-nav {

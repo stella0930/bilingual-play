@@ -527,6 +527,7 @@ const App = {
                 play,
                 lang: 'en',
                 mode: 'watch',        // 'watch' or 'practice'
+                viewMode: 'card',     // 'card' or 'scroll'
                 characterId: null,     // selected character for practice mode
                 currentLineIdx: 0,
                 isPlaying: false,
@@ -578,6 +579,12 @@ const App = {
                     <button class="watch-mode-btn" id="modePractice" onclick="App.setWatchMode('practice')">🎭 Practice / 练习</button>
                 </div>
 
+                <!-- View Mode Toggle: Card Fixed vs Scroll -->
+                <div class="watch-view-toggle">
+                    <button class="watch-view-btn active" id="viewCard" onclick="App.setWatchViewMode('card')">🎴 Card / 卡片</button>
+                    <button class="watch-view-btn" id="viewScroll" onclick="App.setWatchViewMode('scroll')">📜 Scroll / 滚动</button>
+                </div>
+
                 <!-- Character selector (only in practice mode) -->
                 <div class="watch-char-select hidden" id="watchCharSelect">
                     <label>Choose your role / 选择你的角色：</label>
@@ -626,7 +633,7 @@ const App = {
                 ` : ''}
 
                 <!-- Current Line Display (big centered) -->
-                <div class="watch-stage" id="watchStage">
+                <div class="watch-stage sticky" id="watchStage">
                     <div class="watch-scene-label" id="watchSceneLabel">Opening / 开场</div>
                     <div class="watch-line-card" id="watchLineCard">
                         <div class="watch-char-avatar" id="watchCharAvatar">📖</div>
@@ -636,6 +643,11 @@ const App = {
                         <div class="watch-stage-dir hidden" id="watchStageDir"></div>
                         <div class="watch-prompt hidden" id="watchPrompt">🎤 Your turn! Read this line! / 轮到你了！朗读这句！</div>
                     </div>
+                </div>
+
+                <!-- Scroll Mode: Full Script -->
+                <div class="watch-scroll-script" id="watchScrollScript">
+                    ${this.renderWatchScrollScript(play)}
                 </div>
 
                 <!-- Player Controls -->
@@ -761,6 +773,74 @@ const App = {
         }
     },
 
+    setWatchViewMode(viewMode) {
+        const w = this.data.watch;
+        if (!w) return;
+        if (w.viewMode === viewMode) return;
+
+        w.viewMode = viewMode;
+        w.isPlaying = false;
+        w.practiceStep = 'idle';
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+        document.getElementById('watchPlayBtn').textContent = '▶';
+
+        document.getElementById('viewCard').classList.toggle('active', viewMode === 'card');
+        document.getElementById('viewScroll').classList.toggle('active', viewMode === 'scroll');
+
+        const stage = document.getElementById('watchStage');
+        const scroll = document.getElementById('watchScrollScript');
+        const scriptNav = document.getElementById('watchScriptNav');
+
+        if (viewMode === 'card') {
+            stage.classList.remove('hidden');
+            scroll.classList.remove('active');
+            scriptNav.style.display = '';
+            // Keep sticky class for card mode
+            stage.classList.add('sticky');
+        } else {
+            stage.classList.add('hidden');
+            stage.classList.remove('sticky');
+            scroll.classList.add('active');
+            scriptNav.style.display = 'none';
+            // Re-render scroll script in case language changed
+            scroll.innerHTML = this.renderWatchScrollScript(w.play);
+        }
+
+        this.showWatchCurrentLine();
+    },
+
+    renderWatchScrollScript(play) {
+        const w = this.data.watch;
+        const lang = w ? w.lang : 'en';
+        let html = '';
+        let globalIdx = 0;
+        for (let si = 0; si < play.scenes.length; si++) {
+            const scene = play.scenes[si];
+            const title = lang === 'zh' ? scene.title_zh : (lang === 'bilingual' ? `${scene.title_en} / ${scene.title_zh}` : scene.title_en);
+            html += `<div class="watch-scroll-scene" data-scene-idx="${si}">
+                <div class="watch-scroll-scene-title">${scene.number > 0 ? `Scene ${scene.number}: ` : ''}${title}</div>`;
+            for (const line of scene.lines) {
+                const char = play.characters.find(c => c.id === line.character_id);
+                const charName = char ? (lang === 'zh' ? char.name_zh : char.name_en) : '';
+                const charEmoji = char ? char.emoji : '';
+                const mainText = lang === 'zh' ? line.text_zh : (lang === 'bilingual' ? line.text_en : line.text_en);
+                const altText = lang === 'bilingual' ? line.text_zh : (lang === 'zh' ? line.text_en : line.text_zh);
+                const sd = lang === 'zh' ? (line.stage_direction_zh || '') : (lang === 'bilingual' ? `${line.stage_direction_en || ''} / ${line.stage_direction_zh || ''}` : (line.stage_direction_en || ''));
+                html += `<div class="watch-scroll-line" id="watchScrollLine_${globalIdx}" data-line-idx="${globalIdx}" onclick="App.watchJumpLine(${globalIdx})">
+                    <div class="watch-scroll-line-char" style="color:${char ? char.color : 'inherit'}">${charEmoji} ${charName}</div>
+                    <div class="watch-scroll-line-text">
+                        ${mainText}
+                        ${lang === 'bilingual' ? `<div class="watch-scroll-line-alt">${altText}</div>` : ''}
+                        ${sd ? `<div class="watch-scroll-line-dir">(${sd})</div>` : ''}
+                    </div>
+                </div>`;
+                globalIdx++;
+            }
+            html += '</div>';
+        }
+        return html;
+    },
+
     selectWatchChar(charId) {
         this.data.watch.characterId = charId || null;
         this.data.watch.practiceStep = 'idle';
@@ -827,6 +907,11 @@ const App = {
 
         // Re-render script nav
         document.getElementById('watchScriptNav').innerHTML = this.renderWatchScriptNav(w.play);
+        // Re-render scroll script if visible
+        const scrollContainer = document.getElementById('watchScrollScript');
+        if (scrollContainer && w.viewMode === 'scroll') {
+            scrollContainer.innerHTML = this.renderWatchScrollScript(w.play);
+        }
         // Update current line display
         this.showWatchCurrentLine();
     },
@@ -1599,7 +1684,7 @@ const App = {
         document.getElementById('watchProgressFill').style.width = pct + '%';
         document.getElementById('watchProgressText').textContent = `${w.currentLineIdx + 1} / ${total}`;
 
-        // Highlight in script nav
+        // Highlight in script nav and scroll view
         this.highlightWatchCurrentLine();
     },
 
@@ -1608,20 +1693,36 @@ const App = {
         // Remove all highlights
         document.querySelectorAll('.watch-nav-line.active').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.watch-nav-line.is-my-line').forEach(el => el.classList.remove('is-my-line'));
+        document.querySelectorAll('.watch-scroll-line.active').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.watch-scroll-line.is-my-line').forEach(el => el.classList.remove('is-my-line'));
 
-        // Add highlight to current line
+        // Add highlight to current line in script nav
         const navLine = document.getElementById(`watchNavLine_${w.currentLineIdx}`);
         if (navLine) {
             navLine.classList.add('active');
-            navLine.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // In card mode, do NOT auto-scroll the page; only scroll within the script nav itself
+            if (w.viewMode !== 'card') {
+                navLine.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        // In scroll mode, also highlight and scroll the full scroll view line
+        if (w.viewMode === 'scroll') {
+            const scrollLine = document.getElementById(`watchScrollLine_${w.currentLineIdx}`);
+            if (scrollLine) {
+                scrollLine.classList.add('active');
+                scrollLine.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
         }
 
         // In practice mode, mark the user's lines
         if (w.mode === 'practice' && w.characterId) {
             w.allLines.forEach((line, idx) => {
                 if (line.characterId === w.characterId) {
-                    const el = document.getElementById(`watchNavLine_${idx}`);
-                    if (el) el.classList.add('is-my-line');
+                    const navEl = document.getElementById(`watchNavLine_${idx}`);
+                    if (navEl) navEl.classList.add('is-my-line');
+                    const scrollEl = document.getElementById(`watchScrollLine_${idx}`);
+                    if (scrollEl) scrollEl.classList.add('is-my-line');
                 }
             });
         }
