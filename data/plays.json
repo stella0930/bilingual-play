@@ -399,5 +399,212 @@
         ]
       }
     ]
+  },
+  {
+    "id": 3,
+    "title_en": "The Cosmic Cadenza",
+    "title_zh": "星际变奏曲",
+    "cover_emoji": "🎹",
+    "description_en": "A musical space adventure! When a glowing alien cat named Glimmer lands in their backyard, Amy and Tom join Professor Astro on the Melody Explorer — a piano-shaped spaceship powered by music. Together with their friend Luna from China, they travel to the Moon and Mars, discovering that music is the most powerful energy in the universe, and friendship is the greatest force of all.",
+    "description_zh": "一场音乐太空冒险！当一只名叫小闪的发光外星猫降落在后院时，艾米和汤姆加入了星教授的旋律探索号——一架用音乐驱动的钢琴飞船。他们和中国朋友露娜一起飞往月球和火星，发现音乐是宇宙中最强大的能量，而友谊是最伟大的力量。",
+    "characters": [
+      {"id": "narrator", "name_en": "Narrator", "name_zh": "旁白", "personality_en": "Warm, storytelling", "personality_zh": "温和，讲故事的感觉", "color": "#8B5CF6", "emoji": "📖"},
+      {"id": "amy", "name_en": "Amy", "name_zh": "艾米", "personality_en": "10, loves playing piano, curious and caring", "personality_zh": "10岁，喜欢弹钢琴，好奇又温柔", "color": "#EC4899", "emoji": "⭐"},
+      {"id": "tom", "name_en": "Tom", "name_zh": "汤姆", "personality_en": "7, Amy's little brother, loves rockets and space, just started learning piano", "personality_zh": "7岁，艾米的弟弟，喜欢火箭和太空，刚开始学钢琴", "color": "#3B82F6", "emoji": "👦"},
+      {"id": "luna", "name_en": "Luna", "name_zh": "露娜", "personality_en": "9, Amy and Tom's good friend from China, loves playing piano", "personality_zh": "9岁，Amy和Tom在中国奶奶家认识的好朋友，喜欢弹钢琴", "color": "#F472B6", "emoji": "🌙"},
+      {"id": "professor_astro", "name_en": "Professor Astro", "name_zh": "星教授", "personality_en": "A wise space explorer, captain of the Melody Explorer", "personality_zh": "聪明的太空探险家，旋律探索号的船长", "color": "#F59E0B", "emoji": "🎩"},
+      {"id": "glimmer", "name_en": "Glimmer", "name_zh": "小闪", "personality_en": "A talking, glowing alien cat from Andromeda Galaxy", "personality_zh": "从仙女星系来的会说话、会发光的外星猫", "color": "#10B981", "emoji": "✨"}
+    ],
+    "scenes": [
+      {
+        "id": "prologue",
+        "number": 0,
+        "title_en": "Prologue",
+        "title_zh": "序幕",
+        "stage_direction_en": "",
+        "stage_direction_zh": "",
+        "lines": [
+          {"character_id": "narrator", "text_en": "Good evening, everyone! Welcome to our summer theater! Tonight, we are so excited to bring you: *\"The Cosmic Cadenza: A Musical Space Adventure\"*! This is the story of Amy and her little brother Tom. Amy loves playing piano. Tom loves rockets. One night, while Amy is practicing and Tom is dreaming about Mars, something very strange appears outside their window. A glowing cat? A musical spaceship? A journey to the Moon? And somewhere in China, a girl named Luna is about to get the surprise of her life! Ready? Here we go — three… two… one!\n\n---", "text_zh": "大家晚上好！欢迎来看我们的暑期小剧场！今晚，我们为大家带来：《星际变奏曲：一场音乐太空冒险》！这个故事讲的是艾米和她的弟弟汤姆。艾米喜欢弹钢琴，汤姆喜欢火箭。有一天晚上，艾米在练琴，汤姆在想着火星，突然，窗外出现了一个奇怪的东西。一只会发光的猫？一架音乐太空船？一趟去月亮的旅行？还有，在中国，一个叫露娜的女孩，马上就要遇到一个大惊喜啦！准备好了吗？我们出发吧——三、二、一！\n\n---"}
+        ]
+      },
+      {
+        "id": "act1",
+        "number": 1,
+        "title_en": "Act One · A Strange Light in the Sky",
+        "title_zh": "第一幕 · 天上有个奇怪的光",
+        "stage_direction_en": "",
+        "stage_direction_zh": "",
+        "lines": [
+          {"character_id": "narrator", "text_en": "Evening. Amy sits at the piano, playing a gentle melody. Tom lies on the floor, surrounded by rocket drawings and a toy spaceship. He stares at the ceiling, dreaming of space.", "text_zh": "晚上。艾米坐在钢琴前，弹着一首温柔的曲子。汤姆躺在地上，身边全是火箭画和玩具飞船。他看着天花板，做着太空梦。"},
+          {"character_id": "tom", "text_en": "Vrooooom! Spaceship, you are cleared for launch! Destination: Mars! Three… two… one… BLAST OFF!", "text_zh": "呜——！太空船，准备发射！目标：火星！三、二、一……发射！", "stage_direction_en": "holding up his toy rocket, making engine sounds", "stage_direction_zh": "举起玩具火箭，发出引擎的声音"},
+          {"character_id": "amy", "text_en": "Tom! I'm trying to practice! Can you please take your rocket to… I don't know… another planet?", "text_zh": "汤姆！我在练琴呢！你能不能带着你的火箭去……嗯……别的星球？", "stage_direction_en": "stops playing, turns around", "stage_direction_zh": "停下弹琴，转过身"},
+          {"character_id": "tom", "text_en": "That's exactly what I want to do, Amy! Did you know Mars is… over two hundred million kilometers away? And someone is actually building a real rocket to go there! Elon Musk!", "text_zh": "我就是想去别的星球呀，艾米！你知道吗，火星离我们有……两亿多公里远！而且真的有人在造去火星的火箭！伊隆.马斯克!", "stage_direction_en": "sitting up, eyes sparkling", "stage_direction_zh": "坐起来，眼睛亮亮的"},
+          {"character_id": "amy", "text_en": "I know, I know. You've told me about a hundred times. But right now, I need to finish this piece. It's called \"Starlight Waltz,\" and our good friend Luna in China is going to play it too. We're doing a video call duet tomorrow.", "text_zh": "我知道，我知道。你都跟我说了一百遍了。但是现在，我得把这首曲子弹完。它叫《星光圆舞曲》，我们在中国好朋友露娜也要弹这首。我们明天要视频合奏呢。", "stage_direction_en": "sighing, but smiling a little", "stage_direction_zh": "叹了口气，又笑了笑"},
+          {"character_id": "tom", "text_en": "Luna! She's so cool! She can play so many beautiful Chinese songs. Remember when she played \"Jasmine Flower\" for us?", "text_zh": "露娜！她太酷了！她会弹好多好听的中国曲子。你还记得她给我们弹的《茉莉花》吗？", "stage_direction_en": "jumping up", "stage_direction_zh": "跳起来"},
+          {"character_id": "amy", "text_en": "I remember. She said music is like a bridge — it connects people on opposite sides of the world. *(plays a few soft notes)*", "text_zh": "记得。她说音乐就像一座桥——能把地球两边的人连在一起。（弹了几个轻柔的音）", "stage_direction_en": "nods, fingers resting on the keys", "stage_direction_zh": "点点头，手指放在琴键上"},
+          {"character_id": "tom", "text_en": "Whoa — Amy! Look! Outside! There's something… glowing!", "text_zh": "哇——艾米！快看！外面！有个东西……在发光！", "stage_direction_en": "suddenly pointing at the window", "stage_direction_zh": "突然指着窗户"},
+          {"character_id": "amy", "text_en": "What? Where?", "text_zh": "什么？在哪儿？", "stage_direction_en": "turning to look", "stage_direction_zh": "转头看"},
+          {"character_id": "narrator", "text_en": "Amy and Tom rush to the window. In the backyard, near the old oak tree, a golden light pulses in the darkness. It looks like a tiny star — but it's right there on the grass!", "text_zh": "艾米和汤姆跑到窗边。在后院的老橡树旁边，有一团金色的光在黑暗中一闪一闪的。它看起来像一颗小小的星星——但它就在草地上！"},
+          {"character_id": "tom", "text_en": "Is it a firefly? A really, really big firefly?", "text_zh": "是萤火虫吗？一只超级大的萤火虫？", "stage_direction_en": "grabbing Amy's arm", "stage_direction_zh": "抓住艾米的胳膊"},
+          {"character_id": "amy", "text_en": "Fireflies don't glow gold. And they don't… wait. Is it moving?", "text_zh": "萤火虫不会发金光。而且它们不会……等等，它是不是在动？", "stage_direction_en": "squinting", "stage_direction_zh": "眯着眼睛看"},
+          {"character_id": "tom", "text_en": "Only one way to find out! Come on!", "text_zh": "去看看就知道啦！快来！", "stage_direction_en": "already running to the door", "stage_direction_zh": "已经往门口跑了"},
+          {"character_id": "narrator", "text_en": "Tom is already out the door. Amy runs after him. They creep toward the glowing light, hearts pounding.\n\n---", "text_zh": "汤姆已经冲出门了。艾米跟着跑出去。他们小心地走向那团光，心砰砰直跳。\n\n---"}
+        ]
+      },
+      {
+        "id": "act2",
+        "number": 2,
+        "title_en": "Act Two · The Cat from the Stars",
+        "title_zh": "第二幕 · 从星星来的猫",
+        "stage_direction_en": "",
+        "stage_direction_zh": "",
+        "lines": [
+          {"character_id": "narrator", "text_en": "Under the oak tree, the golden light grows brighter. It's not a firefly at all. It's a small, fluffy creature — a cat! But this cat shimmers like starlight, and its eyes twinkle like two tiny galaxies.", "text_zh": "橡树下面，金色的光越来越亮。那根本不是萤火虫。那是一只小小的、毛茸茸的动物——一只猫！但这只猫像星光一样闪闪发亮，它的眼睛像两个小小的银河。"},
+          {"character_id": "tom", "text_en": "No… way. A glowing cat. Amy, are you seeing this?", "text_zh": "不……会吧。一只会发光的猫。艾米，你看到了吗？", "stage_direction_en": "whispering, eyes wide", "stage_direction_zh": "小声说，眼睛瞪得大大的"},
+          {"character_id": "amy", "text_en": "I… I think I am? Unless we're both dreaming the same dream.", "text_zh": "我……我想我看到了？除非我们俩在做同一个梦。", "stage_direction_en": "just as amazed", "stage_direction_zh": "同样惊讶"},
+          {"character_id": "glimmer", "text_en": "Meow… Wow, that was a long nap. *(looking around)* Oh! Hello there, Earth children! Did I land in the right place? This is Planet Earth, correct?", "text_zh": "喵……哇，这一觉睡得好长啊。（看看四周）哦！你们好呀，地球上的小朋友！我降落对地方了吗？这里是地球，对吧？", "stage_direction_en": "stretching, yawning, then speaking in a soft, musical voice", "stage_direction_zh": "伸了个懒腰，打了个哈欠，然后用软软的、像音乐一样的声音说话"},
+          {"character_id": "tom", "text_en": "It TALKS! Amy, the glowing cat TALKS!", "text_zh": "它会说话！艾米，这只发光的猫会说话！", "stage_direction_en": "stumbling backward", "stage_direction_zh": "往后退了一步"},
+          {"character_id": "amy", "text_en": "Um… hello? Who… are you? Where did you come from?", "text_zh": "嗯……你好？你是……谁？你从哪里来的？", "stage_direction_en": "kneeling down slowly", "stage_direction_zh": "慢慢蹲下来"},
+          {"character_id": "glimmer", "text_en": "My name is Glimmer. I'm a Star Cat from the Andromeda Galaxy. I travel across the universe collecting beautiful sounds — music, laughter, songs. My spaceship ran a little low on musical energy, so I had to make an emergency landing. *(tilts head)* You wouldn't happen to know anyone who plays music, would you?", "text_zh": "我叫小闪。我是从仙女星系来的星光猫。我在宇宙里到处旅行，收集好听的声音——音乐呀、笑声呀、歌声呀。我的飞船音乐能量不够了，只好紧急降落。（歪歪头）你们不会刚好认识会弹音乐的人吧？", "stage_direction_en": "licking a paw, very casual", "stage_direction_zh": "舔舔爪子，很轻松的样子"},
+          {"character_id": "tom", "text_en": "Amy plays piano! She's really good! And I know everything about rockets! And our friend Luna in China plays piano too! She can play songs that are hundreds of years old!", "text_zh": "艾米会弹钢琴！她弹得可好了！我还知道所有关于火箭的知识！还有我们在中国的朋友露娜也会弹钢琴！她会弹几百年以前的老歌！", "stage_direction_en": "practically exploding with excitement", "stage_direction_zh": "兴奋得快要爆炸了"},
+          {"character_id": "glimmer", "text_en": "Piano? Real, live piano music? That's the most powerful energy in the universe! *(suddenly looking up)* Ah — and here comes my pilot now.", "text_zh": "钢琴？真的、活生生的钢琴音乐？那可是宇宙里最厉害的能量！（突然抬头看）啊——我的驾驶员来了。", "stage_direction_en": "ears perking up", "stage_direction_zh": "耳朵竖起来"},
+          {"character_id": "narrator", "text_en": "A soft humming sound fills the air. A magnificent spaceship — shaped like a grand piano with wings — descends silently from the stars and hovers just above the backyard. A friendly-looking man with silver hair and a coat covered in constellation patterns steps out.", "text_zh": "空中传来轻轻的嗡嗡声。一架漂亮的飞船——样子像一架长了翅膀的大钢琴——从星星中间悄悄飞下来，停在后院上方。一位看起来很亲切的银发老爷爷走了出来，他的外套上画满了星座图案。"},
+          {"character_id": "professor_astro", "text_en": "Good evening, young Earthlings! I am Professor Astro, captain of the Melody Explorer. I see you've already met my navigator, Glimmer. I do hope she hasn't caused too much trouble.", "text_zh": "晚上好，地球上的小朋友们！我是星教授，是\"旋律探索号\"的船长。看来你们已经认识我的导航员小闪了。希望她没有给你们添太多麻烦。", "stage_direction_en": "bowing slightly", "stage_direction_zh": "微微鞠躬"},
+          {"character_id": "amy", "text_en": "Your spaceship… it looks like a piano!", "text_zh": "你们的飞船……长得像一架钢琴！", "stage_direction_en": "mouth open", "stage_direction_zh": "嘴巴张得大大的"},
+          {"character_id": "professor_astro", "text_en": "Of course it does! The Melody Explorer runs on the most powerful energy source in the cosmos: music. Every note, every chord, every melody — it all powers our journey through the stars. But right now, we're running on empty. We need a musical crew. Would you… be interested?", "text_zh": "当然啦！\"旋律探索号\"用的是宇宙里最强大的能量：音乐。每一个音符、每一个和弦、每一段旋律——都能给我们的星际旅行提供能量。但是现在，我们的能量快用完了。我们需要一个音乐小队。你们……有兴趣吗？", "stage_direction_en": "chuckling", "stage_direction_zh": "笑呵呵地"},
+          {"character_id": "tom", "text_en": "YES! YES! A thousand times YES!", "text_zh": "有！有！一千个有！", "stage_direction_en": "jumping up and down", "stage_direction_zh": "跳上跳下"},
+          {"character_id": "amy", "text_en": "Wait — Professor Astro, can I ask a question? Our friend Luna lives in China. She plays piano beautifully, and she loves the stars as much as we do. Could we… could we bring her too?", "text_zh": "等等——星教授，我能问一个问题吗？我们的朋友露娜住在中国。她钢琴弹得特别好，而且她和我们一样喜欢星星。我们能不能……能不能也带上她？", "stage_direction_en": "grabbing Tom's shoulder", "stage_direction_zh": "拉住汤姆的肩膀"},
+          {"character_id": "professor_astro", "text_en": "A friend who loves both music and the stars? That's exactly the kind of crew member we need! Glimmer, set course for China! We have one more passenger to collect!", "text_zh": "一个既喜欢音乐又喜欢星星的朋友？那正是我们需要的小队员！小闪，设定航线，去中国！我们还要接一位乘客！", "stage_direction_en": "eyes twinkling", "stage_direction_zh": "眼睛闪闪发光"},
+          {"character_id": "glimmer", "text_en": "Meow! A musical detour! I love detours!\n\n---", "text_zh": "喵！音乐绕路！我最喜欢绕路了！\n\n---", "stage_direction_en": "purring, tail swishing", "stage_direction_zh": "咕噜咕噜地，尾巴摇来摇去"}
+        ]
+      },
+      {
+        "id": "act3",
+        "number": 3,
+        "title_en": "Act Three · Luna's Surprise",
+        "title_zh": "第三幕 · 露娜的惊喜",
+        "stage_direction_en": "",
+        "stage_direction_zh": "",
+        "lines": [
+          {"character_id": "narrator", "text_en": "The Melody Explorer glides through the night sky, silent as a whisper. In minutes, they hover above a quiet neighborhood in China. Luna is sitting by her window, practicing a melody on her keyboard. Suddenly, a golden light fills her room.", "text_zh": "\"旋律探索号\"在夜空中飞过，安静得像说悄悄话。几分钟后，他们来到了中国一个安静的小区上空。露娜正坐在窗边，在电子琴上练一首曲子。突然，一道金色的光照亮了她的房间。"},
+          {"character_id": "luna", "text_en": "What — ? Is that… a spaceship? Outside my window?", "text_zh": "什么——？那是……一架飞船？在我窗外？", "stage_direction_en": "looking up, startled", "stage_direction_zh": "抬头一看，吓了一跳"},
+          {"character_id": "amy", "text_en": "Luna! Luna, it's us! Amy and Tom! Come outside!", "text_zh": "露娜！露娜，是我们！艾米和汤姆！快出来！", "stage_direction_en": "voice coming from the ship", "stage_direction_zh": "声音从飞船里传出来"},
+          {"character_id": "luna", "text_en": "Amy? Tom? Am I dreaming?", "text_zh": "艾米？汤姆？我是在做梦吗？", "stage_direction_en": "rubbing her eyes", "stage_direction_zh": "揉揉眼睛"},
+          {"character_id": "narrator", "text_en": "Luna runs outside. She sees the magnificent piano-shaped spaceship, the glowing cat, the silver-haired professor — and her two good friends waving from the doorway.", "text_zh": "露娜跑出去。她看到了那架漂亮的钢琴飞船、会发光的猫、银头发的教授——还有她的两个好朋友在飞船门口朝她挥手。"},
+          {"character_id": "tom", "text_en": "Luna! We're going to space! To play piano! On the Moon! And Mars! Come with us!", "text_zh": "露娜！我们要去太空！去弹钢琴！去月亮上！还有火星！跟我们一起去吧！", "stage_direction_en": "shouting", "stage_direction_zh": "大喊"},
+          {"character_id": "luna", "text_en": "This is the craziest thing that has ever happened to me. *(she grins)* I'm in!", "text_zh": "这是我遇到过最疯狂的事了。（她咧嘴一笑）我去！", "stage_direction_en": "laughing in disbelief", "stage_direction_zh": "不敢相信地笑了"},
+          {"character_id": "professor_astro", "text_en": "Welcome to the Melody Explorer, Luna! Amy tells me you play beautiful traditional melodies. We would love to hear one.", "text_zh": "欢迎登上\"旋律探索号\"，露娜！艾米跟我说你会弹好听的传统曲子。我们很想听一首。", "stage_direction_en": "helping her aboard", "stage_direction_zh": "扶她上船"},
+          {"character_id": "luna", "text_en": "This piano… it's glowing! Like it's made of starlight!", "text_zh": "这架钢琴……它在发光！好像是用星光做的！", "stage_direction_en": "looking at the Cosmic Piano, eyes wide", "stage_direction_zh": "看着宇宙钢琴，眼睛瞪得大大的"},
+          {"character_id": "glimmer", "text_en": "It's a Cosmic Piano! It turns music into energy. The more beautiful the song, the faster we fly!", "text_zh": "这是宇宙钢琴！它能把音乐变成能量。曲子越好听，我们飞得越快！", "stage_direction_en": "rubbing against Luna's ankles", "stage_direction_zh": "在露娜脚边蹭来蹭去"},
+          {"character_id": "luna", "text_en": "Then let me play a song from my heart. This is one my grandmother taught me. It's called \"Lemon Tree.\"", "text_zh": "那我弹一首我心里的歌吧。这是我外婆教我的。叫《柠檬树》。", "stage_direction_en": "sitting at the piano", "stage_direction_zh": "坐在钢琴前"},
+          {"character_id": "narrator", "text_en": "Luna places her fingers on the glowing keys. A bright and warm melody fills the ship — fresh as lemons in the sunshine, gentle as a summer breeze. The crystals on the piano glow with golden light. The whole ship hums with energy.", "text_zh": "露娜把手指放在发光的琴键上。一首轻快又温暖的曲子充满了飞船——像阳光下的柠檬一样清新，像夏日的微风一样舒服。钢琴上的水晶发出金色的光。整艘飞船都充满了能量。"},
+          {"character_id": "professor_astro", "text_en": "Magnificent! The energy tanks are filling up! Happy melodies lift the spirit — that's a very special kind of energy!", "text_zh": "太棒了！能量槽在往上涨！快乐的旋律让人心情好——这是很特别的能量！", "stage_direction_en": "checking a glowing gauge", "stage_direction_zh": "看着一个发光的仪表盘"},
+          {"character_id": "glimmer", "text_en": "Purrrr… I can feel the music in my whiskers!", "text_zh": "喵……我的胡须都能感觉到音乐了！", "stage_direction_en": "floating slightly off the ground", "stage_direction_zh": "轻轻飘起来一点"},
+          {"character_id": "tom", "text_en": "Luna, that was beautiful! Now let's GO! To the Moon!", "text_zh": "露娜，太好听了！现在我们出发吧！去月亮！", "stage_direction_en": "clapping", "stage_direction_zh": "鼓掌"},
+          {"character_id": "professor_astro", "text_en": "Course set for the Moon! All crew, prepare for liftoff! Glimmer, engage the musical engines!", "text_zh": "航线设定：月亮！全体船员，准备起飞！小闪，启动音乐引擎！", "stage_direction_en": "at the controls", "stage_direction_zh": "在控制台前"},
+          {"character_id": "glimmer", "text_en": "Meow-sic engines… ON!", "text_zh": "喵——音乐引擎……启动！", "stage_direction_en": "paws on a glowing panel", "stage_direction_zh": "爪子放在发光的面板上"},
+          {"character_id": "narrator", "text_en": "The Melody Explorer rises into the night sky. Earth grows smaller and smaller behind them. Ahead: the silver glow of the Moon.\n\n---", "text_zh": "\"旋律探索号\"飞向夜空。地球在他们身后越来越小。前方：月亮的银色光芒。\n\n---"}
+        ]
+      },
+      {
+        "id": "act4",
+        "number": 4,
+        "title_en": "Act Four · Concert on the Moon",
+        "title_zh": "第四幕 · 月亮上的音乐会",
+        "stage_direction_en": "",
+        "stage_direction_zh": "",
+        "lines": [
+          {"character_id": "narrator", "text_en": "The ship touches down on the lunar surface. Fine gray dust puffs up around the landing gear. Through the window, the children see the Earth — a beautiful blue-and-green marble hanging in the black sky.", "text_zh": "飞船降落在月球表面。细细的灰色灰尘在起落架旁边飘起来。透过窗户，孩子们看到了地球——一颗漂亮的蓝绿色弹珠，挂在黑色的天空中。"},
+          {"character_id": "tom", "text_en": "WHOA! I'm flying! I mean — I'm walking, but it feels like flying!", "text_zh": "哇！我在飞！我是说——我在走路，但感觉像在飞！", "stage_direction_en": "stepping out, bouncing", "stage_direction_zh": "走出来，蹦蹦跳跳地"},
+          {"character_id": "professor_astro", "text_en": "That's lunar gravity, Tom! The Moon's gravity is only one-sixth of Earth's. If you weigh sixty pounds on Earth, you weigh only ten pounds here!", "text_zh": "这就是月球的引力，汤姆！月球的引力只有地球的六分之一。如果你在地球上重六十斤，在这里你只有十斤重！", "stage_direction_en": "smiling", "stage_direction_zh": "笑着说"},
+          {"character_id": "tom", "text_en": "This is so much fun! I'm like a superhero!", "text_zh": "这太好玩了！我像超人一样！", "stage_direction_en": "taking giant, bouncy steps", "stage_direction_zh": "迈着大大的、弹弹的步子"},
+          {"character_id": "amy", "text_en": "Even playing piano feels different here! My fingers feel so light!", "text_zh": "在这里弹钢琴感觉都不一样！我的手指好轻啊！", "stage_direction_en": "stepping carefully, then laughing as she bounces", "stage_direction_zh": "小心地走，然后笑着跳起来"},
+          {"character_id": "luna", "text_en": "Look… from up here, you can see the continents! There's North America, and there's Asia. From the Moon, there are no borders at all.", "text_zh": "看……从这里看，能看到地球上的陆地！那是北美，那是亚洲。从月亮上看，根本没有国界。", "stage_direction_en": "looking up at Earth", "stage_direction_zh": "抬头看着地球"},
+          {"character_id": "amy", "text_en": "You're right. From the Moon, Earth is just… one home. One big, beautiful home.", "text_zh": "你说得对。从月亮上看，地球就是……一个家。一个又大又美的家。", "stage_direction_en": "standing beside Luna", "stage_direction_zh": "站在露娜旁边"},
+          {"character_id": "glimmer", "text_en": "Meow! Less gravity means more flips! Watch this! *(does a triple somersault)*", "text_zh": "喵！引力小就能多翻跟头！看我的！（翻了个三连翻）", "stage_direction_en": "floating in low gravity, doing somersaults", "stage_direction_zh": "在低引力下飘着，翻跟头"},
+          {"character_id": "professor_astro", "text_en": "Now then — who's ready for the first-ever Moonlight Concert? Amy, would you do the honor of the first piece?", "text_zh": "好了——谁准备好参加第一场月光音乐会了？艾米，你来弹第一首曲子好吗？", "stage_direction_en": "setting up the Cosmic Piano on the lunar surface", "stage_direction_zh": "在月球表面架好宇宙钢琴"},
+          {"character_id": "amy", "text_en": "This is for everyone back on Earth. It's called \"Childhood Memories.\" Luna, I know you've practiced this one too. Want to join me for the second half?", "text_zh": "这首曲子送给地球上的每一个人。它叫《童年的回忆》。露娜，我知道你也练过这首。后半段跟我一起弹好吗？", "stage_direction_en": "sitting at the piano, taking a deep breath", "stage_direction_zh": "坐在钢琴前，深吸一口气"},
+          {"character_id": "luna", "text_en": "I'd love to.", "text_zh": "好啊。", "stage_direction_en": "nodding, standing beside the piano", "stage_direction_zh": "点点头，站在钢琴旁边"},
+          {"character_id": "narrator", "text_en": "Amy begins to play. The notes float across the lunar landscape, carried by the ship's speakers across the silent land. Halfway through, Luna joins in — her right hand weaving a Chinese-style counter-melody around Amy's tune. East and West, old and new, dancing together under the stars.", "text_zh": "艾米开始弹琴。音符在月球上飘荡，通过飞船的喇叭传遍这片安静的大地。弹到一半，露娜加入了——她的右手在艾米的旋律上编织出一条中国风的副旋律。东方和西方，古老和现代，在星空下一起跳舞。"},
+          {"character_id": "professor_astro", "text_en": "In all my years exploring the galaxy… I have never heard anything so beautiful. Two friends, two cultures, one song.", "text_zh": "我探索银河这么多年……从来没听过这么美的音乐。两个朋友，两种文化，一首歌。", "stage_direction_en": "wiping a tear from his eye", "stage_direction_zh": "擦掉眼角的一滴泪"},
+          {"character_id": "glimmer", "text_en": "The music energy is… overflowing! We could fly to the edge of the universe!", "text_zh": "音乐能量……满出来了！我们能飞到宇宙的尽头！", "stage_direction_en": "curled up on top of the piano, purring in rhythm", "stage_direction_zh": "蜷在钢琴上面，跟着节奏咕噜咕噜"},
+          {"character_id": "tom", "text_en": "Professor Astro? I just started learning piano. But I've been practicing a piece. Can I… can I try?", "text_zh": "星教授？我刚刚开始学习弹钢琴。但是我练了一首曲子。我能……我能试试吗？", "stage_direction_en": "who has been quietly listening, now steps forward", "stage_direction_zh": "一直安静地听着，现在走上前"},
+          {"character_id": "professor_astro", "text_en": "Of course, Tom! The Cosmic Piano welcomes everyone.", "text_zh": "当然可以，汤姆！宇宙钢琴欢迎每一个人。", "stage_direction_en": "surprised but delighted", "stage_direction_zh": "有点惊讶但很高兴"},
+          {"character_id": "tom", "text_en": "Okay. I can play Canon! *(Tom plays Canon)*. And I also made up one myself. I call it \"Rocket Launch.\" *(he plays a simple but powerful piece — low rumbling notes that climb higher and higher, ending in a joyful burst of high notes)*", "text_zh": "好。我会弹卡农呢！（汤姆弹了卡农）。还有一首是我自己编的。我叫它《火箭起飞》。（他弹了一首简单但很有力量的曲子——低音轰隆隆的，越来越高，最后在高音区快乐地爆发出来），", "stage_direction_en": "sitting at the piano, a little nervous", "stage_direction_zh": "坐在钢琴前，有点紧张"},
+          {"character_id": "amy", "text_en": "Tom! You've never played piano this well!", "text_zh": "汤姆！你钢琴曲从来没有弹得这么好！", "stage_direction_en": "hugging him", "stage_direction_zh": "抱住他"},
+          {"character_id": "tom", "text_en": "I guess I just needed the right piano. And the right place. And… you know… the Moon.", "text_zh": "我可能就是需要一架对的钢琴。还有一个对的地方。还有……你知道……在月亮上。", "stage_direction_en": "shrugging, but beaming", "stage_direction_zh": "耸耸肩，但笑得很开心"},
+          {"character_id": "luna", "text_en": "That was amazing, Tom! It really did sound like a rocket taking off!", "text_zh": "太厉害了，汤姆！真的像火箭起飞的声音！", "stage_direction_en": "clapping", "stage_direction_zh": "鼓掌"},
+          {"character_id": "glimmer", "text_en": "Meow meow meow! The energy gauge is completely FULL! Professor, we can go anywhere!", "text_zh": "喵喵喵！能量表完全满了！教授，我们可以去任何地方！", "stage_direction_en": "bouncing excitedly", "stage_direction_zh": "兴奋地跳来跳去"},
+          {"character_id": "professor_astro", "text_en": "Anywhere, you say? Well then — how about Mars?", "text_zh": "任何地方？那——去火星怎么样？", "stage_direction_en": "stroking his chin", "stage_direction_zh": "摸摸下巴"},
+          {"character_id": "amy", "text_en": "The Red Planet? Really?", "text_zh": "红色星球？真的吗？", "stage_direction_en": "eyes wide", "stage_direction_zh": "眼睛瞪大"},
+          {"character_id": "professor_astro", "text_en": "Really. But first — let's send a message back to Earth. Glimmer, activate the Star Broadcast!", "text_zh": "真的。不过首先——让我们给地球发一条消息。小闪，启动星际广播！"},
+          {"character_id": "glimmer", "text_en": "Broadcasting on all frequencies! Earth, can you hear us?\n\n---", "text_zh": "全频率广播！地球，你能听到我们吗？\n\n---", "stage_direction_en": "pressing a button with her paw", "stage_direction_zh": "用爪子按下一个按钮"}
+        ]
+      },
+      {
+        "id": "act5",
+        "number": 5,
+        "title_en": "Act Five · The Cosmic Cadenza",
+        "title_zh": "第五幕 · 星际合奏",
+        "stage_direction_en": "",
+        "stage_direction_zh": "",
+        "lines": [
+          {"character_id": "narrator", "text_en": "The Melody Explorer soars toward Mars. Outside the window, stars streak past like lines of light. Inside, the children gather around the Cosmic Piano for one final, grand performance.", "text_zh": "\"旋律探索号\"飞向火星。窗外，星星像光线一样划过。飞船里，孩子们围在宇宙钢琴旁边，准备最后一场大演出。"},
+          {"character_id": "professor_astro", "text_en": "We're approaching Mars! Look — you can see Olympus Mons, the tallest volcano in the entire solar system. It's nearly three times the height of Mount Everest!", "text_zh": "我们快到火星了！看——那是奥林匹斯山，整个太阳系最高的火山。它差不多是珠穆朗玛峰的三倍高！"},
+          {"character_id": "tom", "text_en": "Three times! That means if you climbed it, you'd need three times as many snacks!", "text_zh": "三倍！那如果要爬上去，得带三倍的零食！", "stage_direction_en": "pressed against the window", "stage_direction_zh": "脸贴在窗户上"},
+          {"character_id": "luna", "text_en": "And Mars is called the Red Planet because there's rust in its soil. It's like the whole planet is blushing!", "text_zh": "火星叫红色星球，是因为它的土里面有铁锈。就像整个星球都在脸红一样！", "stage_direction_en": "laughing", "stage_direction_zh": "笑着说"},
+          {"character_id": "amy", "text_en": "Professor, do you think humans will really live on Mars someday?", "text_zh": "教授，你觉得人类以后真的会住在火星上吗？"},
+          {"character_id": "professor_astro", "text_en": "I believe they will. But you know what the first Martians will need more than anything? Not just food, water, and shelter. They'll need music. They'll need songs to remind them of home. They'll need friends to play with.", "text_zh": "我相信会的。但是你知道吗，第一批火星人最需要的是什么？不只是食物、水和房子。他们需要音乐。他们需要歌来提醒自己家在哪里。他们需要朋友一起玩。"},
+          {"character_id": "glimmer", "text_en": "A silent planet is a sad planet. Every world needs its own soundtrack!", "text_zh": "一个没有声音的星球是一个伤心的星球。每个世界都需要自己的音乐！", "stage_direction_en": "nodding seriously", "stage_direction_zh": "认真地点点头"},
+          {"character_id": "tom", "text_en": "Then let's give Mars its first concert! Right now!", "text_zh": "那我们来给火星开第一场音乐会！就现在！"},
+          {"character_id": "professor_astro", "text_en": "An excellent idea! Amy, Luna, Tom — together, play the \"Cosmic Cadenza\"! This piece combines everything: classical, traditional, and… rocket sounds. Glimmer and I will conduct the stars!", "text_zh": "好主意！艾米、露娜、汤姆——一起来弹一首《星际变奏曲》吧！这首曲子把所有的东西都放在一起：古典的、传统的、还有……火箭的声音。我和小闪来指挥星星！"},
+          {"character_id": "narrator", "text_en": "And so, orbiting high above the red surface of Mars, the three children play. Amy's classical training anchors the melody. Luna's traditional Chinese scales dance above it like ribbons of silk. And Tom adds rumbling bass notes — the sound of rockets dreaming of liftoff. The Cosmic Piano glows brighter than ever before.", "text_zh": "于是，在火星红色大地的上空，三个孩子一起弹起了琴。艾米的古典基础稳稳地托着旋律。露娜的中国传统音阶像丝带一样在上面跳舞。汤姆加上轰隆隆的低音——那是火箭梦想起飞的声音。宇宙钢琴比任何时候都亮。"},
+          {"character_id": "glimmer", "text_en": "Meow-ody… harmony… the whole universe is listening!", "text_zh": "喵……旋律……和声……整个宇宙都在听！", "stage_direction_en": "floating, glowing, singing", "stage_direction_zh": "飘在空中，发着光，唱着"},
+          {"character_id": "professor_astro", "text_en": "Look! The stars are twinkling in time with the music! The galaxy is applauding!", "text_zh": "看！星星在跟着音乐一闪一闪的！银河在给我们鼓掌！", "stage_direction_en": "voice breaking with emotion", "stage_direction_zh": "声音激动得有点发抖"},
+          {"character_id": "narrator", "text_en": "The music travels across space. Back on Earth, people look up at the night sky and feel something warm in their hearts, though they don't know why. A little girl in Canada hums a tune she's never heard before. A grandmother in China smiles at a melody that feels like an old friend.", "text_zh": "音乐穿过太空。在地球上，人们抬头看着夜空，心里感到一阵温暖，虽然他们不知道为什么。加拿大的一个小女孩哼起了一首从没听过的歌。中国的一位奶奶听到一段旋律笑了，那旋律像一个老朋友。"},
+          {"character_id": "amy", "text_en": "That was… the best I've ever played.", "text_zh": "这是……我弹得最好的一次。", "stage_direction_en": "finishing the piece, hands resting on the keys", "stage_direction_zh": "弹完曲子，手放在琴键上"},
+          {"character_id": "luna", "text_en": "Because we played it together. Music is always better with friends.", "text_zh": "因为我们一起弹的。音乐和朋友在一起，总是更好听。"},
+          {"character_id": "tom", "text_en": "And rockets are better with music! We should put a piano on every spaceship!", "text_zh": "火箭加上音乐也更好！我们应该在每一架飞船里都放一架钢琴！", "stage_direction_en": "leaning on the piano", "stage_direction_zh": "靠在钢琴上"},
+          {"character_id": "glimmer", "text_en": "Meow… all that music made me sleepy. Can we go home now? I miss my cosmic cat bed.", "text_zh": "喵……这么多音乐让我好困。我们能回家了吗？我想我的宇宙猫窝了。", "stage_direction_en": "yawning, curling up", "stage_direction_zh": "打哈欠，蜷起来"},
+          {"character_id": "professor_astro", "text_en": "Glimmer is right. Every adventure must come to an end — so a new one can begin. Let's take our young musicians home.\n\n---", "text_zh": "小闪说得对。每一次冒险都要结束——这样新的冒险才能开始。让我们把小朋友们送回家吧。\n\n---", "stage_direction_en": "laughing gently", "stage_direction_zh": "温柔地笑了"}
+        ]
+      },
+      {
+        "id": "finale",
+        "number": 6,
+        "title_en": "Finale · Home",
+        "title_zh": "尾声 · 回家",
+        "stage_direction_en": "",
+        "stage_direction_zh": "",
+        "lines": [
+          {"character_id": "narrator", "text_en": "The Melody Explorer glides back to Earth. It drops Luna off first — she waves goodbye from her window, already planning to write a song about her journey. Then Amy and Tom are lowered gently into their backyard, just as the first golden light of dawn appears on the horizon.", "text_zh": "\"旋律探索号\"飞回地球。它先把露娜送回家——她在窗边挥手告别，已经在想要写一首关于这次旅行的歌了。然后艾米和汤姆被轻轻放回后院，天边正好露出第一缕金色的晨光。"},
+          {"character_id": "professor_astro", "text_en": "Amy, Tom — thank you. You reminded me of something important. The most powerful force in the universe isn't gravity, or light, or even music itself. It's friendship. The bond between people who share a song.", "text_zh": "艾米、汤姆——谢谢你们。你们让我想起了一件很重要的事。宇宙里最强大的力量不是引力，不是光，甚至不是音乐本身。是友谊。是分享一首歌的人之间的纽带。", "stage_direction_en": "kneeling to meet their eyes", "stage_direction_zh": "蹲下来看着他们的眼睛"},
+          {"character_id": "glimmer", "text_en": "And don't forget — whenever you play piano, we'll hear it. Even from the Andromeda Galaxy. In Star Cat language, meow means \"goodbye.\" But it also means \"see you soon.\"", "text_zh": "别忘了——每次你们弹钢琴，我们都会听到。就算在仙女星系也能听到。在星光猫的语言里，喵是\"再见\"的意思。但它也是\"很快再见\"的意思。", "stage_direction_en": "rubbing against their legs one last time", "stage_direction_zh": "最后一次蹭蹭他们的腿"},
+          {"character_id": "amy", "text_en": "Will we ever see you again?", "text_zh": "我们还会再见到你们吗？", "stage_direction_en": "kneeling to pet Glimmer", "stage_direction_zh": "蹲下来摸摸小闪"},
+          {"character_id": "glimmer", "text_en": "Just play a song under the stars. We'll find you.", "text_zh": "只要在星星下面弹一首歌。我们就会找到你。", "stage_direction_en": "winking", "stage_direction_zh": "眨眨眼"},
+          {"character_id": "tom", "text_en": "Professor Astro! Next time, can we go to Jupiter? It has… over ninety moons! We could do a concert on every single one!", "text_zh": "星教授！下次我们能去木星吗？它有……九十几颗卫星！我们可以在每一颗卫星上都开一场音乐会！", "stage_direction_en": "saluting", "stage_direction_zh": "敬礼"},
+          {"character_id": "professor_astro", "text_en": "Ninety-five concerts? We'd better start practicing right now! Farewell, young Earthlings! Keep playing, keep dreaming, and keep looking up at the stars!", "text_zh": "九十五场音乐会？那我们得赶紧开始练琴了！再见啦，地球上的小朋友们！继续弹琴，继续做梦，继续抬头看星星！", "stage_direction_en": "laughing, climbing back into the ship", "stage_direction_zh": "笑着爬回飞船"},
+          {"character_id": "narrator", "text_en": "The Melody Explorer rises into the morning sky, growing smaller and smaller until it looks just like another star. Amy and Tom stand in their backyard, watching until it disappears.", "text_zh": "\"旋律探索号\"飞向清晨的天空，越来越小，直到看起来就像另一颗星星。艾米和汤姆站在后院里，一直看到它消失。"},
+          {"character_id": "amy", "text_en": "Tom? I think I understand now. What Luna said — about music being a bridge.", "text_zh": "汤姆？我想我现在明白了。露娜说的——音乐是一座桥。", "stage_direction_en": "quietly", "stage_direction_zh": "轻轻地说"},
+          {"character_id": "tom", "text_en": "Yeah?", "text_zh": "嗯？"},
+          {"character_id": "amy", "text_en": "It's not just a bridge between countries. It's a bridge between… everything. People, planets, even galaxies. As long as someone is playing, no one is ever really alone.", "text_zh": "它不只是国家之间的桥。它是……所有东西之间的桥。人、星球、甚至星系。只要有人在弹琴，就没有人是孤单的。"},
+          {"character_id": "tom", "text_en": "That's really beautiful, Amy. *(grins)* Now come on — I want to practice my \"Rocket Launch\" before breakfast!\n\n*(They run inside, laughing. Above them, a single star twinkles — and if you listen very closely, you can almost hear a distant meow.)*", "text_zh": "说得真好，艾米。（咧嘴笑）来吧——我想在吃早饭前再练练我的《火箭起飞》！\n\n（他们笑着跑进屋里。头顶上，一颗星星在闪烁——如果你仔细听，好像能听到远处传来一声喵。）", "stage_direction_en": "after a pause", "stage_direction_zh": "停了一下"},
+          {"character_id": "narrator", "text_en": "And so, three children on two sides of the world learned that music can take you anywhere — across oceans, through space, all the way to the stars and back. All you need is a song in your heart, and a friend to share it with.\n\n---", "text_zh": "就这样，三个在地球两边的小朋友学会了：音乐能带你去任何地方——跨过大海，穿过太空，一直到星星那里，再回来。你只需要心里有一首歌，还有一个朋友跟你一起分享。\n\n---"}
+        ]
+      },
+      {
+        "id": "curtain_call",
+        "number": 7,
+        "title_en": "Curtain Call",
+        "title_zh": "谢幕",
+        "stage_direction_en": "",
+        "stage_direction_zh": "",
+        "lines": [
+          {"character_id": "narrator", "text_en": "Ladies and gentlemen, boys and girls — that was *\"The Cosmic Cadenza: A Musical Space Adventure\"*! Let's give a big round of applause to our amazing cast! Playing Amy… *(applause)*! Tom… *(applause)*! Luna… *(applause)*! Professor Astro… *(applause)*! And the one and only Glimmer… *(applause)*!", "text_zh": "女士们先生们，小朋友们——这就是《星际变奏曲：音乐太空大冒险》！让我们把掌声送给我们的演员们！演艾米的是……（掌声）！汤姆……（掌声）！露娜……（掌声）！星教授……（掌声）！还有独一无二的小闪……（掌声）！"},
+          {"character_id": "narrator", "text_en": "And thank YOU, our wonderful audience! You were the brightest stars in the theater tonight! Now, everyone — let's take one big bow together! On the count of three — one… two… three!", "text_zh": "也谢谢你们，我们最棒的观众！你们是今晚剧场里最亮的星星！现在，大家一起——来一个大鞠躬！数到三——一……二……三！"},
+          {"character_id": "narrator", "text_en": "Good night, everyone! Keep looking up at the stars — and keep the music playing!", "text_zh": "晚安，大家！继续抬头看星星——继续让音乐响起来！"}
+        ]
+      }
+    ]
   }
 ]
