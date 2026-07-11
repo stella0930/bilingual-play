@@ -1111,27 +1111,35 @@ body {
     display: none !important;
 }
 
+.watch-stage-wrapper {
+    position: sticky;
+    top: 64px;
+    z-index: 50;
+    background: var(--bg);
+    padding-bottom: 8px;
+    margin-bottom: 16px;
+}
+
+.watch-stage-wrapper.hidden {
+    display: none !important;
+}
+
 .watch-stage {
     background: linear-gradient(135deg, #1E293B 0%, #334155 100%);
     border-radius: var(--radius-lg);
-    padding: 32px 24px;
+    padding: 24px 20px;
     text-align: center;
     color: white;
-    margin-bottom: 16px;
-    min-height: 220px;
+    margin-bottom: 12px;
+    min-height: 180px;
+    max-height: 50vh;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     box-shadow: var(--shadow-lg);
     position: relative;
-    overflow: hidden;
-}
-
-.watch-stage.sticky {
-    position: sticky;
-    top: 80px;
-    z-index: 50;
 }
 
 .watch-stage.hidden {
@@ -1329,6 +1337,23 @@ body {
 }
 
 .watch-scroll-script.active {
+    display: block;
+}
+
+/* Fixed control bar for scroll mode */
+.watch-scroll-controls {
+    position: sticky;
+    top: 64px;
+    z-index: 50;
+    background: var(--card-bg);
+    padding: 10px 16px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
+    margin-bottom: 12px;
+    display: none;
+}
+
+.watch-scroll-controls.active {
     display: block;
 }
 

@@ -632,30 +632,40 @@ const App = {
                 </div>
                 ` : ''}
 
-                <!-- Current Line Display (big centered) -->
-                <div class="watch-stage sticky" id="watchStage">
-                    <div class="watch-scene-label" id="watchSceneLabel">Opening / 开场</div>
-                    <div class="watch-line-card" id="watchLineCard">
-                        <div class="watch-char-avatar" id="watchCharAvatar">📖</div>
-                        <div class="watch-char-name" id="watchCharName">Narrator</div>
-                        <div class="watch-line-text" id="watchLineText">Click ▶ to start! / 点击 ▶ 开始！</div>
-                        <div class="watch-line-text-alt hidden" id="watchLineTextAlt"></div>
-                        <div class="watch-stage-dir hidden" id="watchStageDir"></div>
-                        <div class="watch-prompt hidden" id="watchPrompt">🎤 Your turn! Read this line! / 轮到你了！朗读这句！</div>
+                <!-- Current Line Display (big centered) - Card Mode -->
+                <div class="watch-stage-wrapper" id="watchStageWrapper">
+                    <div class="watch-stage" id="watchStage">
+                        <div class="watch-scene-label" id="watchSceneLabel">Opening / 开场</div>
+                        <div class="watch-line-card" id="watchLineCard">
+                            <div class="watch-char-avatar" id="watchCharAvatar">📖</div>
+                            <div class="watch-char-name" id="watchCharName">Narrator</div>
+                            <div class="watch-line-text" id="watchLineText">Click ▶ to start! / 点击 ▶ 开始！</div>
+                            <div class="watch-line-text-alt hidden" id="watchLineTextAlt"></div>
+                            <div class="watch-stage-dir hidden" id="watchStageDir"></div>
+                            <div class="watch-prompt hidden" id="watchPrompt">🎤 Your turn! Read this line! / 轮到你了！朗读这句！</div>
+                        </div>
+                    </div>
+
+                    <!-- Player Controls (inside wrapper for card mode) -->
+                    <div class="watch-controls" id="watchControls">
+                        <button class="watch-ctrl-btn" onclick="App.watchPrev()" title="Previous / 上一句">⏮</button>
+                        <button class="watch-ctrl-btn watch-play-btn" id="watchPlayBtn" onclick="App.watchTogglePlay()" title="Play / 播放">▶</button>
+                        <button class="watch-ctrl-btn" onclick="App.watchNext()" title="Next / 下一句">⏭</button>
+                        <button class="watch-ctrl-btn" id="watchMuteBtn" onclick="App.watchToggleMute()" title="Mute / 静音">🔊</button>
+                    </div>
+
+                    <!-- Progress (inside wrapper) -->
+                    <div class="watch-progress" id="watchProgress">
+                        <div class="watch-progress-bar" id="watchProgressBar">
+                            <div class="watch-progress-fill" id="watchProgressFill" style="width:0%"></div>
+                        </div>
+                        <div class="watch-progress-text" id="watchProgressText">0 / ${totalLines}</div>
                     </div>
                 </div>
 
                 <!-- Scroll Mode: Full Script -->
                 <div class="watch-scroll-script" id="watchScrollScript">
                     ${this.renderWatchScrollScript(play)}
-                </div>
-
-                <!-- Player Controls -->
-                <div class="watch-controls">
-                    <button class="watch-ctrl-btn" onclick="App.watchPrev()" title="Previous / 上一句">⏮</button>
-                    <button class="watch-ctrl-btn watch-play-btn" id="watchPlayBtn" onclick="App.watchTogglePlay()" title="Play / 播放">▶</button>
-                    <button class="watch-ctrl-btn" onclick="App.watchNext()" title="Next / 下一句">⏭</button>
-                    <button class="watch-ctrl-btn" id="watchMuteBtn" onclick="App.watchToggleMute()" title="Mute / 静音">🔊</button>
                 </div>
 
                 <!-- Practice action buttons (visible in practice mode when it's user's turn) -->
@@ -675,14 +685,6 @@ const App = {
                 </div>
 
                 <div class="watch-upload-ref hidden" id="watchUploadRef"></div>
-
-                <!-- Progress -->
-                <div class="watch-progress">
-                    <div class="watch-progress-bar" id="watchProgressBar">
-                        <div class="watch-progress-fill" id="watchProgressFill" style="width:0%"></div>
-                    </div>
-                    <div class="watch-progress-text" id="watchProgressText">0 / ${totalLines}</div>
-                </div>
 
                 <!-- Score result for practice mode -->
                 <div class="watch-score-result hidden" id="watchScoreResult"></div>
@@ -761,7 +763,7 @@ const App = {
         document.getElementById('modeWatch').classList.toggle('active', mode === 'watch');
         document.getElementById('modePractice').classList.toggle('active', mode === 'practice');
         document.getElementById('watchCharSelect').classList.toggle('hidden', mode === 'watch');
-        document.getElementById('watchPlayBtn').textContent = '▶';
+        this.setWatchPlayButton('▶');
 
         // Hide practice actions when switching to watch mode
         if (mode === 'watch') {
@@ -782,31 +784,64 @@ const App = {
         w.isPlaying = false;
         w.practiceStep = 'idle';
         if (window.speechSynthesis) window.speechSynthesis.cancel();
-        document.getElementById('watchPlayBtn').textContent = '▶';
+        this.setWatchPlayButton('▶');
 
         document.getElementById('viewCard').classList.toggle('active', viewMode === 'card');
         document.getElementById('viewScroll').classList.toggle('active', viewMode === 'scroll');
 
-        const stage = document.getElementById('watchStage');
+        const wrapper = document.getElementById('watchStageWrapper');
         const scroll = document.getElementById('watchScrollScript');
         const scriptNav = document.getElementById('watchScriptNav');
 
         if (viewMode === 'card') {
-            stage.classList.remove('hidden');
+            // Card mode: show wrapper (stage + controls + progress), hide scroll script
+            wrapper.classList.remove('hidden');
             scroll.classList.remove('active');
             scriptNav.style.display = '';
-            // Keep sticky class for card mode
-            stage.classList.add('sticky');
         } else {
-            stage.classList.add('hidden');
-            stage.classList.remove('sticky');
+            // Scroll mode: hide card stage but keep controls+progress visible
+            // Move controls outside wrapper into a fixed position
+            wrapper.classList.add('hidden');
             scroll.classList.add('active');
             scriptNav.style.display = 'none';
-            // Re-render scroll script in case language changed
             scroll.innerHTML = this.renderWatchScrollScript(w.play);
+            // Re-create controls in scroll mode
+            this.ensureScrollControls();
         }
 
         this.showWatchCurrentLine();
+    },
+
+    ensureScrollControls() {
+        // Create or update a fixed control bar for scroll mode
+        let bar = document.getElementById('watchScrollControls');
+        if (!bar) {
+            const w = this.data.watch;
+            const totalLines = w.allLines.length;
+            bar = document.createElement('div');
+            bar.className = 'watch-scroll-controls';
+            bar.id = 'watchScrollControls';
+            bar.innerHTML = `
+                <div class="watch-controls" style="margin-bottom:8px">
+                    <button class="watch-ctrl-btn" onclick="App.watchPrev()" title="Previous / 上一句">⏮</button>
+                    <button class="watch-ctrl-btn watch-play-btn" id="watchScrollPlayBtn" onclick="App.watchTogglePlay()" title="Play / 播放">▶</button>
+                    <button class="watch-ctrl-btn" onclick="App.watchNext()" title="Next / 下一句">⏭</button>
+                    <button class="watch-ctrl-btn" id="watchScrollMuteBtn" onclick="App.watchToggleMute()" title="Mute / 静音">🔊</button>
+                </div>
+                <div class="watch-progress" style="margin-bottom:0">
+                    <div class="watch-progress-bar">
+                        <div class="watch-progress-fill" id="watchScrollProgressFill" style="width:0%"></div>
+                    </div>
+                    <div class="watch-progress-text" id="watchScrollProgressText">0 / ${totalLines}</div>
+                </div>
+            `;
+            // Insert before the scroll script
+            const scrollScript = document.getElementById('watchScrollScript');
+            scrollScript.parentNode.insertBefore(bar, scrollScript);
+        }
+        // Sync state
+        const w = this.data.watch;
+        bar.classList.toggle('active', w.viewMode === 'scroll');
     },
 
     renderWatchScrollScript(play) {
@@ -923,10 +958,14 @@ const App = {
             w.isPlaying = false;
             if (window.speechSynthesis) window.speechSynthesis.cancel();
             document.getElementById('watchPlayBtn').textContent = '▶';
+            const sb = document.getElementById('watchScrollPlayBtn');
+            if (sb) sb.textContent = '▶';
         } else {
             // Play
             w.isPlaying = true;
             document.getElementById('watchPlayBtn').textContent = '⏸';
+            const sb = document.getElementById('watchScrollPlayBtn');
+            if (sb) sb.textContent = '⏸';
             this.watchPlayCurrentLine();
         }
     },
@@ -1021,7 +1060,7 @@ const App = {
         const lineData = w.allLines[w.currentLineIdx];
         if (!lineData) {
             w.isPlaying = false;
-            document.getElementById('watchPlayBtn').textContent = '▶';
+            this.setWatchPlayButton('▶');
             return;
         }
 
@@ -1029,7 +1068,7 @@ const App = {
         if (w.mode === 'practice' && w.characterId && lineData.characterId === w.characterId) {
             // This is the user's line — stop auto-play and show practice actions
             w.isPlaying = false;
-            document.getElementById('watchPlayBtn').textContent = '▶';
+            this.setWatchPlayButton('▶');
             w.practiceStep = 'waiting-user';
             this.showWatchCurrentLine();
             this.checkPracticeLine();
@@ -1054,10 +1093,17 @@ const App = {
             // End reached — auto reset to beginning
             w.currentLineIdx = 0;
             w.isPlaying = false;
-            document.getElementById('watchPlayBtn').textContent = '▶';
+            this.setWatchPlayButton('▶');
             this.showWatchCurrentLine();
             this.showToast('🎬 The End! / 剧终！已回到开头', 'success');
         }
+    },
+
+    setWatchPlayButton(text) {
+        const btn1 = document.getElementById('watchPlayBtn');
+        if (btn1) btn1.textContent = text;
+        const btn2 = document.getElementById('watchScrollPlayBtn');
+        if (btn2) btn2.textContent = text;
     },
 
     watchPrev() {
@@ -1066,7 +1112,7 @@ const App = {
         this.watchStopFollowRead();
         w.isPlaying = false;
         w.practiceStep = 'idle';
-        document.getElementById('watchPlayBtn').textContent = '▶';
+        this.setWatchPlayButton('▶');
         document.getElementById('watchPracticeActions').classList.add('hidden');
         document.getElementById('watchUploadRef').classList.add('hidden');
         document.getElementById('watchScoreResult').classList.add('hidden');
@@ -1083,7 +1129,7 @@ const App = {
         this.watchStopFollowRead();
         w.isPlaying = false;
         w.practiceStep = 'idle';
-        document.getElementById('watchPlayBtn').textContent = '▶';
+        this.setWatchPlayButton('▶');
         document.getElementById('watchPracticeActions').classList.add('hidden');
         document.getElementById('watchUploadRef').classList.add('hidden');
         document.getElementById('watchScoreResult').classList.add('hidden');
@@ -1100,7 +1146,7 @@ const App = {
         this.watchStopFollowRead();
         w.isPlaying = false;
         w.practiceStep = 'idle';
-        document.getElementById('watchPlayBtn').textContent = '▶';
+        this.setWatchPlayButton('▶');
         document.getElementById('watchPracticeActions').classList.add('hidden');
         document.getElementById('watchUploadRef').classList.add('hidden');
         document.getElementById('watchScoreResult').classList.add('hidden');
@@ -1115,7 +1161,7 @@ const App = {
         this.watchStopFollowRead();
         w.isPlaying = false;
         w.practiceStep = 'idle';
-        document.getElementById('watchPlayBtn').textContent = '▶';
+        this.setWatchPlayButton('▶');
         document.getElementById('watchPracticeActions').classList.add('hidden');
         document.getElementById('watchUploadRef').classList.add('hidden');
         document.getElementById('watchScoreResult').classList.add('hidden');
@@ -1130,7 +1176,10 @@ const App = {
     watchToggleMute() {
         const w = this.data.watch;
         w.isMuted = !w.isMuted;
-        document.getElementById('watchMuteBtn').textContent = w.isMuted ? '🔇' : '🔊';
+        const muteText = w.isMuted ? '🔇' : '🔊';
+        document.getElementById('watchMuteBtn').textContent = muteText;
+        const sb = document.getElementById('watchScrollMuteBtn');
+        if (sb) sb.textContent = muteText;
         if (w.isMuted && window.speechSynthesis) window.speechSynthesis.cancel();
     },
 
@@ -1683,6 +1732,11 @@ const App = {
         const pct = Math.round(((w.currentLineIdx + 1) / total) * 100);
         document.getElementById('watchProgressFill').style.width = pct + '%';
         document.getElementById('watchProgressText').textContent = `${w.currentLineIdx + 1} / ${total}`;
+        // Also update scroll mode progress if exists
+        const scrollFill = document.getElementById('watchScrollProgressFill');
+        const scrollText = document.getElementById('watchScrollProgressText');
+        if (scrollFill) scrollFill.style.width = pct + '%';
+        if (scrollText) scrollText.textContent = `${w.currentLineIdx + 1} / ${total}`;
 
         // Highlight in script nav and scroll view
         this.highlightWatchCurrentLine();
